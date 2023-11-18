@@ -148,24 +148,53 @@ namespace FlaxEditor.Windows
 
         private void Spawn(Type type)
         {
-            // Create actor
-            Actor actor = (Actor)FlaxEngine.Object.New(type);
             Actor parentActor = null;
+
             if (Editor.SceneEditing.HasSthSelected && Editor.SceneEditing.Selection[0] is ActorNode actorNode)
             {
                 parentActor = actorNode.Actor;
                 actorNode.TreeNode.Expand();
             }
+
+            Spawn(type, parentActor);
+        }
+
+        private void Spawn(Type type, Actor parentActor)
+        {
+            var spawnPosition = Vector3.Zero;
+
+            // Create actor
+            var actor = (Actor)FlaxEngine.Object.New(type);
+
             if (parentActor == null)
             {
                 var scenes = Level.Scenes;
                 if (scenes.Length > 0)
                     parentActor = scenes[scenes.Length - 1];
+
+                if (Editor.Instance.Options.Options.Viewport.CreateActorsOnFrontOfView)
+                {
+                    var viewport = Editor.Instance.Windows.EditWin.Viewport;
+                    var viewRay = new Ray(viewport.ViewPosition, viewport.ViewDirection);
+                    var flags = SceneGraphNode.RayCastData.FlagTypes.SkipColliders | SceneGraphNode.RayCastData.FlagTypes.SkipEditorPrimitives;
+                    var hit = Editor.Instance.Scene.Root.RayCast(ref viewRay, ref viewRay, out var closest, out var normal, flags);
+                    spawnPosition = viewRay.Position + viewRay.Direction * 1000;
+
+                    if (hit != null && closest < 10000)
+                    {
+                        spawnPosition = viewRay.Position + viewRay.Direction * closest;
+                    }
+                }
+                else if (parentActor)
+                {
+                    spawnPosition = parentActor.Position;
+                }
             }
             if (parentActor != null)
             {
                 // Use the same location
                 actor.Transform = parentActor.Transform;
+                actor.Position = spawnPosition;
 
                 // Rename actor to identify it easily
                 actor.Name = Utilities.Utils.IncrementNameNumber(type.Name, x => parentActor.GetChild(x) == null);

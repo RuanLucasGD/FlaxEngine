@@ -1,7 +1,9 @@
 // Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
 
 using System;
+using System.Collections.Generic;
 using FlaxEditor.GUI.ContextMenu;
+using FlaxEditor.GUI.ContextMenu.Utils;
 using FlaxEditor.SceneGraph;
 using FlaxEngine;
 using FlaxEngine.GUI;
@@ -156,45 +158,20 @@ namespace FlaxEditor.Windows
                 if (actorType.IsAbstract || !actorType.HasAttribute(typeof(ActorContextMenuAttribute), false))
                     continue;
 
-                ActorContextMenuAttribute attribute = null;
-                foreach (var actorAttribute in actorType.GetAttributes(false))
+                var attribute = GetContextMenu(actorType);
+                var basePath = GetActorContextMenuPath(attribute.Path);
+                var contextMenuPath = new List<string>(new string[] { "New" });
+                contextMenuPath.AddRange(basePath);
+
+                // create new actor cm
+                ContextMenuUtils.CreateChildByPath(contextMenu, contextMenuPath, () => Spawn(actorType.Type, null));
+
+                // create actor as child cm
+                if (isSingleActorSelected)
                 {
-                    if (actorAttribute is ActorContextMenuAttribute actorContextMenuAttribute)
-                    {
-                        attribute = actorContextMenuAttribute;
-                    }
-                }
-                var splitPath = attribute?.Path.Split('/');
-                ContextMenuChildMenu childCM = null;
-                bool mainCM = true;
-                for (int i = 0; i < splitPath?.Length; i++)
-                {
-                    if (i == splitPath.Length - 1)
-                    {
-                        if (mainCM)
-                        {
-                            contextMenu.AddButton(splitPath[i].Trim(), () => Spawn(actorType.Type));
-                            mainCM = false;
-                        }
-                        else
-                        {
-                            childCM?.ContextMenu.AddButton(splitPath[i].Trim(), () => Spawn(actorType.Type));
-                            childCM.ContextMenu.AutoSort = true;
-                        }
-                    }
-                    else
-                    {
-                        if (mainCM)
-                        {
-                            childCM = contextMenu.GetOrAddChildMenu(splitPath[i].Trim());
-                            mainCM = false;
-                        }
-                        else
-                        {
-                            childCM = childCM?.ContextMenu.GetOrAddChildMenu(splitPath[i].Trim());
-                        }
-                        childCM.ContextMenu.AutoSort = true;
-                    }
+                    var newChildSplitPath = new List<string>(new string[] { "New Child" });
+                    newChildSplitPath.AddRange(basePath);
+                    ContextMenuUtils.CreateChildByPath(contextMenu, newChildSplitPath, () => Spawn(actorType.Type));
                 }
             }
 
@@ -221,6 +198,23 @@ namespace FlaxEditor.Windows
             ContextMenuShow?.Invoke(contextMenu);
 
             return contextMenu;
+        }
+
+        private ActorContextMenuAttribute GetContextMenu(Scripting.ScriptType type)
+        {
+            foreach (var actorAttribute in type.GetAttributes(false))
+            {
+                if (actorAttribute is ActorContextMenuAttribute actorContextMenuAttribute)
+                    return actorContextMenuAttribute;
+            }
+
+            return null;
+        }
+
+        private string[] GetActorContextMenuPath(string path)
+        {
+            var splitPath = path.Split('/');
+            return splitPath;
         }
 
         /// <summary>
