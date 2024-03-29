@@ -40,6 +40,12 @@ namespace FlaxEditor.Options
         public float UISelectionOutlineSize { get; set; } = 2.0f;
 
         /// <summary>
+        /// Gets or sets the selection outline for UI anchors.
+        /// </summary>
+        [EditorOrder(207)]
+        public Color UISelectionAnchorColor { get; set; } = Color.Yellow * 0.8f;
+
+        /// <summary>
         /// Gets or sets the transform gizmo size.
         /// </summary>
         [DefaultValue(1.0f), Limit(0.01f, 100.0f, 0.01f)]

@@ -611,6 +611,39 @@ namespace FlaxEditor
             Render2D.DrawLine(ur, br, color, options.UISelectionOutlineSize);
             Render2D.DrawLine(br, bl, color, options.UISelectionOutlineSize);
             Render2D.DrawLine(bl, ul, color, options.UISelectionOutlineSize);
+
+            if (uiControl && uiControl.Parent && uiControl.Parent is UIControl parent)
+            {
+                var controlParent = parent.Control;
+                if (controlParent != null)
+                {
+                    var parentBounds = controlParent.EditorBounds;
+                    var parentUl = controlParent.PointToParent(this, parentBounds.UpperLeft);
+                    var parentUr = controlParent.PointToParent(this, parentBounds.UpperRight);
+                    var parentBl = controlParent.PointToParent(this, parentBounds.BottomLeft);
+                    var parentBr = controlParent.PointToParent(this, parentBounds.BottomRight);
+
+                    var minX = Mathf.Lerp(parentUl.X, parentUr.X, control.AnchorMin.X);
+                    var maxX = Mathf.Lerp(parentUl.X, parentUr.X, control.AnchorMax.X);
+                    var minUpperY = Mathf.Lerp(parentUl.Y, parentBl.Y, control.AnchorMin.Y);
+                    var maxUpperY = Mathf.Lerp(parentUl.Y, parentBl.Y, control.AnchorMax.Y);
+                    var minLowerY = Mathf.Lerp(parentUr.Y, parentBr.Y, control.AnchorMin.Y);
+                    var maxLowerY = Mathf.Lerp(parentUr.Y, parentBr.Y, control.AnchorMax.Y);
+
+                    var anchorUl = new Float2(minX, minUpperY);
+                    var anchorBl = new Float2(minX, maxUpperY);
+                    var anchorUr = new Float2(maxX, minLowerY);
+                    var anchorBr = new Float2(maxX, maxLowerY);
+
+                    // anchor
+                    var anchorColor = options.UISelectionAnchorColor;
+                    var outlineSize = options.UISelectionOutlineSize / 2;
+                    Render2D.DrawLine(anchorUl, anchorBl, anchorColor, outlineSize);
+                    Render2D.DrawLine(anchorUr, anchorBr, anchorColor, outlineSize);
+                    Render2D.DrawLine(anchorUl, anchorUr, anchorColor, outlineSize);
+                    Render2D.DrawLine(anchorBl, anchorBr, anchorColor, outlineSize);
+                }
+            }
 #endif
             if (withWidgets)
             {
