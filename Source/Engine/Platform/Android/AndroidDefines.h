@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -34,5 +34,8 @@
 #define PLATFORM_CACHE_LINE_SIZE 64
 
 #define USE_MONO_AOT_MODE MONO_AOT_MODE_NONE
+
+#define GPU_ALLOW_TESSELLATION_SHADERS 0 // Tess on mobile is not well supported
+#define GPU_ALLOW_GEOMETRY_SHADERS 0 // Don't even try GS on mobile
 
 #endif

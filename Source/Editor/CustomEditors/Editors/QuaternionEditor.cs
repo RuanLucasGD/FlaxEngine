@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using FlaxEditor.CustomEditors.Elements;
 using FlaxEngine;
@@ -45,23 +45,29 @@ namespace FlaxEditor.CustomEditors.Editors
             gridControl.SlotsVertically = 1;
 
             XElement = grid.FloatValue();
+            XElement.ValueBox.Category = Utils.ValueCategory.Angle;
             XElement.ValueBox.ValueChanged += OnValueChanged;
             XElement.ValueBox.SlidingEnd += ClearToken;
 
             YElement = grid.FloatValue();
+            YElement.ValueBox.Category = Utils.ValueCategory.Angle;
             YElement.ValueBox.ValueChanged += OnValueChanged;
             YElement.ValueBox.SlidingEnd += ClearToken;
 
             ZElement = grid.FloatValue();
+            ZElement.ValueBox.Category = Utils.ValueCategory.Angle;
             ZElement.ValueBox.ValueChanged += OnValueChanged;
             ZElement.ValueBox.SlidingEnd += ClearToken;
 
-            LinkedLabel.SetupContextMenu += (label, menu, editor) =>
+            if (LinkedLabel != null)
             {
-                menu.AddSeparator();
-                var value = ((Quaternion)Values[0]).EulerAngles;
-                menu.AddButton("Copy Euler", () => { Clipboard.Text = JsonSerializer.Serialize(value); }).TooltipText = "Copy the Euler Angles in Degrees";
-            };
+                LinkedLabel.SetupContextMenu += (label, menu, editor) =>
+                {
+                    menu.AddSeparator();
+                    var value = ((Quaternion)Values[0]).EulerAngles;
+                    menu.AddButton("Copy Euler", () => { Clipboard.Text = JsonSerializer.Serialize(value); }).TooltipText = "Copy the Euler Angles in Degrees";
+                };
+            }
         }
 
         private void OnValueChanged()

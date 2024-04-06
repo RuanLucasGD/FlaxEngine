@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -382,6 +382,7 @@ namespace FlaxEditor.Surface
             {
                 new InputActionsContainer.Binding(options => options.Delete, Delete),
                 new InputActionsContainer.Binding(options => options.SelectAll, SelectAll),
+                new InputActionsContainer.Binding(options => options.DeselectAll, DeselectAll),
                 new InputActionsContainer.Binding(options => options.Copy, Copy),
                 new InputActionsContainer.Binding(options => options.Paste, Paste),
                 new InputActionsContainer.Binding(options => options.Cut, Cut),
@@ -535,6 +536,11 @@ namespace FlaxEditor.Surface
         public virtual bool CanSetParameters => false;
 
         /// <summary>
+        /// Gets a value indicating whether surface supports/allows live previewing graph modifications due to value sliders and color pickers. True by default but disabled for shader surfaces that generate and compile shader source at flight.
+        /// </summary>
+        public virtual bool CanLivePreviewValueChanges => true;
+
+        /// <summary>
         /// Determines whether the specified node archetype can be used in the surface.
         /// </summary>
         /// <param name="groupID">The nodes group archetype identifier.</param>
@@ -606,22 +612,35 @@ namespace FlaxEditor.Surface
             _context.MarkAsModified(graphEdited);
         }
 
-        /// <summary>
-        /// Selects all the nodes.
-        /// </summary>
-        public void SelectAll()
+        private void BulkSelectUpdate(bool select = true)
         {
             bool selectionChanged = false;
             for (int i = 0; i < _rootControl.Children.Count; i++)
             {
-                if (_rootControl.Children[i] is SurfaceControl control && !control.IsSelected)
+                if (_rootControl.Children[i] is SurfaceControl control && control.IsSelected != select)
                 {
-                    control.IsSelected = true;
+                    control.IsSelected = select;
                     selectionChanged = true;
                 }
             }
             if (selectionChanged)
                 SelectionChanged?.Invoke();
+        }
+
+        /// <summary>
+        /// Selects all the nodes.
+        /// </summary>
+        public void SelectAll()
+        {
+            BulkSelectUpdate(true);
+        }
+
+        /// <summary>
+        /// Deelects all the nodes.
+        /// </summary>
+        public void DeselectAll()
+        {
+            BulkSelectUpdate(false);
         }
 
         /// <summary>
@@ -832,7 +851,7 @@ namespace FlaxEditor.Surface
                         actions.Add(action);
                     }
 
-                    Undo.AddAction(new MultiUndoAction(actions, nodes.Count == 1 ? "Remove node" : "Remove nodes"));
+                    AddBatchedUndoAction(new MultiUndoAction(actions, nodes.Count == 1 ? "Remove node" : "Remove nodes"));
                 }
             }
 

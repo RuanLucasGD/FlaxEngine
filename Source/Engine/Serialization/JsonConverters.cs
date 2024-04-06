@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using FlaxEngine.GUI;
@@ -156,6 +156,29 @@ namespace FlaxEngine.Json
             var result = new BehaviorKnowledgeSelectorAny();
             if (reader.TokenType == JsonToken.String)
                 result.Path = (string)reader.Value;
+            else if (reader.TokenType == JsonToken.StartObject)
+            {
+                while (reader.Read())
+                {
+                    switch (reader.TokenType)
+                    {
+                    case JsonToken.PropertyName:
+                    {
+                        var propertyName = (string)reader.Value;
+                        switch (propertyName)
+                        {
+                        case "Path":
+                            result.Path = reader.ReadAsString();
+                            break;
+                        }
+                        break;
+                    }
+                    case JsonToken.Comment: break;
+                    case JsonToken.String: break;
+                    default: return result;
+                    }
+                }
+            }
             return result;
         }
 

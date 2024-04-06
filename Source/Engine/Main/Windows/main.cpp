@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if PLATFORM_WINDOWS
 
@@ -24,8 +24,6 @@ _declspec(dllexport) uint32 NvOptimusEnablement = 0x00000001;
 extern "C" {
 __declspec(dllexport) int32 AmdPowerXpressRequestHighPerformance = 1;
 }
-
-extern LONG CALLBACK SehExceptionHandler(EXCEPTION_POINTERS* ep);
 
 #if FLAX_TESTS
 int main(int argc, char* argv[])
@@ -54,7 +52,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR lpCmd
     {
         return Engine::Main(lpCmdLine);
     }
-    __except (SehExceptionHandler(GetExceptionInformation()))
+    __except (Platform::SehExceptionHandler(GetExceptionInformation()))
     {
         return -1;
     }

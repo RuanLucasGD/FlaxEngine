@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -181,7 +181,7 @@ public:
     /// <summary>
     /// Gets the mass value measured in kilograms (use override value only if OverrideMass is checked).
     /// </summary>
-    API_PROPERTY(Attributes="EditorOrder(110), Limit(0), EditorDisplay(\"Rigid Body\")")
+    API_PROPERTY(Attributes="EditorOrder(110), Limit(0), EditorDisplay(\"Rigid Body\"), ValueCategory(Utils.ValueCategory.Mass)")
     float GetMass() const;
 
     /// <summary>
@@ -486,6 +486,7 @@ public:
     // [Actor]
     void Serialize(SerializeStream& stream, const void* otherObj) override;
     void Deserialize(DeserializeStream& stream, ISerializeModifier* modifier) override;
+    void AddMovement(const Vector3& translation, const Quaternion& rotation) override;
 
     // [IPhysicsActor]
     void* GetPhysicsActor() const override;

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -118,7 +118,7 @@ struct MConverter<String>
     {
         MString** dataPtr = MCore::Array::GetAddress<MString*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            MUtils::ToString(dataPtr[i], result[i]);
+            MUtils::ToString(dataPtr[i], result.Get()[i]);
     }
 };
 
@@ -151,7 +151,7 @@ struct MConverter<StringAnsi>
     {
         MString** dataPtr = MCore::Array::GetAddress<MString*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            MUtils::ToString(dataPtr[i], result[i]);
+            MUtils::ToString(dataPtr[i], result.Get()[i]);
     }
 };
 
@@ -184,7 +184,7 @@ struct MConverter<StringView>
     {
         MString** dataPtr = MCore::Array::GetAddress<MString*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            MUtils::ToString(dataPtr[i], result[i]);
+            MUtils::ToString(dataPtr[i], result.Get()[i]);
     }
 };
 
@@ -217,7 +217,7 @@ struct MConverter<Variant>
     {
         MObject** dataPtr = MCore::Array::GetAddress<MObject*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            result[i] = MUtils::UnboxVariant(dataPtr[i]);
+            result.Get()[i] = MUtils::UnboxVariant(dataPtr[i]);
     }
 };
 
@@ -250,7 +250,7 @@ struct MConverter<T*, typename TEnableIf<TIsBaseOf<class ScriptingObject, T>::Va
     {
         MObject** dataPtr = MCore::Array::GetAddress<MObject*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            result[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
+            result.Get()[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
     }
 };
 
@@ -307,7 +307,7 @@ struct MConverter<ScriptingObjectReference<T>>
     {
         MObject** dataPtr = MCore::Array::GetAddress<MObject*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            result[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
+            result.Get()[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
     }
 };
 
@@ -343,7 +343,32 @@ struct MConverter<AssetReference<T>>
     {
         MObject** dataPtr = MCore::Array::GetAddress<MObject*>(data);
         for (int32 i = 0; i < result.Length(); i++)
-            result[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
+            result.Get()[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
+    }
+};
+
+// TODO: use MarshalAs=Guid on SoftAssetReference to pass guid over bindings and not load asset in glue code
+template<typename T>
+class SoftAssetReference;
+template<typename T>
+struct MConverter<SoftAssetReference<T>>
+{
+    void ToManagedArray(MArray* result, const Span<SoftAssetReference<T>>& data)
+    {
+        if (data.Length() == 0)
+            return;
+        MObject** objects = (MObject**)Allocator::Allocate(data.Length() * sizeof(MObject*));
+        for (int32 i = 0; i < data.Length(); i++)
+            objects[i] = data[i].GetManagedInstance();
+        MCore::GC::WriteArrayRef(result, Span<MObject*>(objects, data.Length()));
+        Allocator::Free(objects);
+    }
+
+    void ToNativeArray(Span<SoftAssetReference<T>>& result, const MArray* data)
+    {
+        MObject** dataPtr = MCore::Array::GetAddress<MObject*>(data);
+        for (int32 i = 0; i < result.Length(); i++)
+            result.Get()[i] = (T*)ScriptingObject::ToNative(dataPtr[i]);
     }
 };
 

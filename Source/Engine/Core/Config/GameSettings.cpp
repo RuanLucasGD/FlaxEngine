@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "GameSettings.h"
 #include "Engine/Serialization/JsonTools.h"
@@ -22,6 +22,7 @@
 #include "Engine/Engine/Globals.h"
 #include "Engine/Profiler/ProfilerCPU.h"
 #include "Engine/Streaming/StreamingSettings.h"
+#include "Engine/Serialization/Serialization.h"
 #if FLAX_TESTS || USE_EDITOR
 #include "Engine/Platform/FileSystem.h"
 #endif

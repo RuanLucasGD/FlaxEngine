@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "TerrainMaterialShader.h"
 #include "MaterialShaderFeatures.h"
@@ -136,6 +136,7 @@ bool TerrainMaterialShader::Load()
     psDesc.DepthEnable = (_info.FeaturesFlags & MaterialFeaturesFlags::DisableDepthTest) == MaterialFeaturesFlags::None;
     psDesc.DepthWriteEnable = (_info.FeaturesFlags & MaterialFeaturesFlags::DisableDepthWrite) == MaterialFeaturesFlags::None;
 
+#if GPU_ALLOW_TESSELLATION_SHADERS
     // Check if use tessellation (both material and runtime supports it)
     const bool useTess = _info.TessellationMode != TessellationMethod::None && GPUDevice::Instance->Limits.HasTessellation;
     if (useTess)
@@ -143,6 +144,7 @@ bool TerrainMaterialShader::Load()
         psDesc.HS = _shader->GetHS("HS");
         psDesc.DS = _shader->GetDS("DS");
     }
+#endif
 
     // Support blending but then use only emissive channel
     switch (_info.BlendMode)

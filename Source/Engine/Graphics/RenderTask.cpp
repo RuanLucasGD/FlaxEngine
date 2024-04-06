@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "RenderTask.h"
 #include "RenderBuffers.h"
@@ -8,11 +8,12 @@
 #include "Engine/Core/Collections/Sorting.h"
 #include "Engine/Debug/DebugLog.h"
 #include "Engine/Level/Level.h"
+#include "Engine/Level/Scene/Scene.h"
 #include "Engine/Level/Actors/Camera.h"
+#include "Engine/Level/Actors/PostFxVolume.h"
 #include "Engine/Renderer/Renderer.h"
 #include "Engine/Render2D/Render2D.h"
 #include "Engine/Engine/Engine.h"
-#include "Engine/Level/Actors/PostFxVolume.h"
 #include "Engine/Profiler/Profiler.h"
 #include "Engine/Renderer/RenderList.h"
 #include "Engine/Threading/Threading.h"
@@ -202,15 +203,21 @@ void SceneRenderTask::CollectPostFxVolumes(RenderContext& renderContext)
     {
         Level::CollectPostFxVolumes(renderContext);
     }
-    if (EnumHasAllFlags(ActorsSource , ActorsSources::CustomActors))
+    if (EnumHasAllFlags(ActorsSource, ActorsSources::CustomActors))
     {
         for (Actor* a : CustomActors)
         {
             auto* postFxVolume = dynamic_cast<PostFxVolume*>(a);
             if (postFxVolume && a->GetIsActive())
-            {
                 postFxVolume->Collect(renderContext);
-            }
+        }
+    }
+    if (EnumHasAllFlags(ActorsSource, ActorsSources::CustomScenes))
+    {
+        for (Scene* scene : CustomScenes)
+        {
+            if (scene && scene->IsActiveInHierarchy())
+                scene->Rendering.CollectPostFxVolumes(renderContext);
         }
     }
 }
@@ -281,6 +288,14 @@ void SceneRenderTask::OnCollectDrawCalls(RenderContextBatch& renderContextBatch,
         }
         ASSERT_LOW_LAYER(_customActorsScene);
         _customActorsScene->Draw(renderContextBatch, (SceneRendering::DrawCategory)category);
+    }
+    if (EnumHasAllFlags(ActorsSource, ActorsSources::CustomScenes))
+    {
+        for (Scene* scene : CustomScenes)
+        {
+            if (scene && scene->IsActiveInHierarchy())
+                scene->Rendering.Draw(renderContextBatch, (SceneRendering::DrawCategory)category);
+        }
     }
     if (EnumHasAllFlags(ActorsSource, ActorsSources::Scenes))
     {
@@ -388,6 +403,9 @@ void SceneRenderTask::OnEnd(GPUContext* context)
     View.PrevView = View.View;
     View.PrevProjection = View.Projection;
     View.PrevViewProjection = View.ViewProjection();
+
+    // Remove jitter from the projection (in case it's unmodified by gameplay eg. due to missing camera)
+    View.Projection = View.NonJitteredProjection;
 }
 
 bool SceneRenderTask::Resize(int32 width, int32 height)

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections;
@@ -12,6 +12,7 @@ using FlaxEditor.GUI.ContextMenu;
 using FlaxEditor.GUI.Docking;
 using FlaxEditor.GUI.Input;
 using FlaxEditor.GUI.Tree;
+using FlaxEditor.Options;
 using FlaxEditor.Scripting;
 using FlaxEditor.Surface;
 using FlaxEditor.Windows;
@@ -72,6 +73,7 @@ namespace FlaxEngine.Windows.Search
     /// <summary>
     /// The content searching window. Allows to search inside Visual Scripts, Materials, Particles and other assets.
     /// </summary>
+    [HideInEditor]
     internal class ContentSearchWindow : EditorWindow
     {
         /// <summary>
@@ -115,6 +117,7 @@ namespace FlaxEngine.Windows.Search
             }
         }
 
+        [HideInEditor]
         private sealed class SearchResultTreeNode : TreeNode
         {
             public Action<SearchResultTreeNode> Navigate;
@@ -140,6 +143,7 @@ namespace FlaxEngine.Windows.Search
             /// <inheritdoc />
             public override bool OnKeyDown(KeyboardKeys key)
             {
+                InputOptions options = FlaxEditor.Editor.Instance.Options.Options.Input;
                 if (IsFocused)
                 {
                     if (key == KeyboardKeys.Return && Navigate != null)
@@ -147,7 +151,7 @@ namespace FlaxEngine.Windows.Search
                         Navigate.Invoke(this);
                         return true;
                     }
-                    if (key == KeyboardKeys.C && Root.GetKey(KeyboardKeys.Control))
+                    if (options.Copy.Process(this))
                     {
                         Clipboard.Text = Text;
                         return true;

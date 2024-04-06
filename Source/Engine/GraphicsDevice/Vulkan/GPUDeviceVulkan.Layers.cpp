@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "GPUDeviceVulkan.h"
 #include "RenderToolsVulkan.h"
@@ -247,7 +247,7 @@ void GPUDeviceVulkan::GetInstanceLayersAndExtensions(Array<const char*>& outInst
     if (foundUniqueLayers.HasItems())
     {
         LOG(Info, "Found instance layers:");
-        Sorting::QuickSort(foundUniqueLayers.Get(), foundUniqueLayers.Count());
+        Sorting::QuickSort(foundUniqueLayers);
         for (const StringAnsi& name : foundUniqueLayers)
         {
             LOG(Info, "- {0}", String(name));
@@ -257,7 +257,7 @@ void GPUDeviceVulkan::GetInstanceLayersAndExtensions(Array<const char*>& outInst
     if (foundUniqueExtensions.HasItems())
     {
         LOG(Info, "Found instance extensions:");
-        Sorting::QuickSort(foundUniqueExtensions.Get(), foundUniqueExtensions.Count());
+        Sorting::QuickSort(foundUniqueExtensions);
         for (const StringAnsi& name : foundUniqueExtensions)
         {
             LOG(Info, "- {0}", String(name));
@@ -455,7 +455,7 @@ void GPUDeviceVulkan::GetDeviceExtensionsAndLayers(VkPhysicalDevice gpu, Array<c
     if (foundUniqueLayers.HasItems())
     {
         LOG(Info, "Found device layers:");
-        Sorting::QuickSort(foundUniqueLayers.Get(), foundUniqueLayers.Count());
+        Sorting::QuickSort(foundUniqueLayers);
         for (const StringAnsi& name : foundUniqueLayers)
         {
             LOG(Info, "- {0}", String(name));
@@ -465,7 +465,7 @@ void GPUDeviceVulkan::GetDeviceExtensionsAndLayers(VkPhysicalDevice gpu, Array<c
     if (foundUniqueExtensions.HasItems())
     {
         LOG(Info, "Found device extensions:");
-        Sorting::QuickSort(foundUniqueExtensions.Get(), foundUniqueExtensions.Count());
+        Sorting::QuickSort(foundUniqueExtensions);
         for (const StringAnsi& name : foundUniqueExtensions)
         {
             LOG(Info, "- {0}", String(name));
@@ -575,25 +575,15 @@ void GPUDeviceVulkan::GetDeviceExtensionsAndLayers(VkPhysicalDevice gpu, Array<c
 void GPUDeviceVulkan::ParseOptionalDeviceExtensions(const Array<const char*>& deviceExtensions)
 {
     Platform::MemoryClear(&OptionalDeviceExtensions, sizeof(OptionalDeviceExtensions));
-
-    const auto HasExtension = [&deviceExtensions](const char* name) -> bool
-    {
-        const Function<bool(const char* const&)> CheckCallback = [&name](const char* const& extension) -> bool
-        {
-            return StringUtils::Compare(extension, name) == 0;
-        };
-        return ArrayExtensions::Any(deviceExtensions, CheckCallback);
-    };
-
 #if VK_KHR_maintenance1
-    OptionalDeviceExtensions.HasKHRMaintenance1 = HasExtension(VK_KHR_MAINTENANCE1_EXTENSION_NAME);
+    OptionalDeviceExtensions.HasKHRMaintenance1 = RenderToolsVulkan::HasExtension(deviceExtensions, VK_KHR_MAINTENANCE1_EXTENSION_NAME);
 #endif
 #if VK_KHR_maintenance2
-    OptionalDeviceExtensions.HasKHRMaintenance2 = HasExtension(VK_KHR_MAINTENANCE2_EXTENSION_NAME);
+    OptionalDeviceExtensions.HasKHRMaintenance2 = RenderToolsVulkan::HasExtension(deviceExtensions, VK_KHR_MAINTENANCE2_EXTENSION_NAME);
 #endif
-    OptionalDeviceExtensions.HasMirrorClampToEdge = HasExtension(VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
+    OptionalDeviceExtensions.HasMirrorClampToEdge = RenderToolsVulkan::HasExtension(deviceExtensions, VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME);
 #if VK_EXT_validation_cache
-    OptionalDeviceExtensions.HasEXTValidationCache = HasExtension(VK_EXT_VALIDATION_CACHE_EXTENSION_NAME);
+    OptionalDeviceExtensions.HasEXTValidationCache = RenderToolsVulkan::HasExtension(deviceExtensions, VK_EXT_VALIDATION_CACHE_EXTENSION_NAME);
 #endif
 }
 

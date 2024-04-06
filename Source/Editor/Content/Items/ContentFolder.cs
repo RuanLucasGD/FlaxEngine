@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -241,7 +241,12 @@ namespace FlaxEditor.Content
 
             // Check if drag is over
             if (IsDragOver && _validDragOver)
-                Render2D.FillRectangle(new Rectangle(Float2.Zero, Size), Style.Current.BackgroundSelected * 0.6f);
+            {
+                var style = Style.Current;
+                var bounds = new Rectangle(Float2.Zero, Size);
+                Render2D.FillRectangle(bounds, style.Selection);
+                Render2D.DrawRectangle(bounds, style.SelectionBorder);
+            }
         }
 
         private bool ValidateDragItem(ContentItem item)

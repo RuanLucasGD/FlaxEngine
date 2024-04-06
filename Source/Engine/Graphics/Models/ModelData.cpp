@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "ModelData.h"
 #include "Engine/Core/Log.h"
@@ -622,7 +622,24 @@ bool MaterialSlotEntry::UsesProperties() const
             Emissive.TextureIndex != -1 ||
             !Math::IsOne(Opacity.Value) ||
             Opacity.TextureIndex != -1 ||
+            Math::NotNearEqual(Roughness.Value, 0.5f) ||
+            Roughness.TextureIndex != -1 ||
             Normals.TextureIndex != -1;
+}
+
+float MaterialSlotEntry::ShininessToRoughness(float shininess)
+{
+    // https://github.com/assimp/assimp/issues/4573
+    const float a = -1.0f;
+    const float b = 2.0f;
+    const float c = (shininess / 100) - 1;
+    const float d = b * b - (4 * a * c);
+	return (-b + Math::Sqrt(d)) / (2 * a);
+}
+
+ModelLodData::~ModelLodData()
+{
+    Meshes.ClearDelete();
 }
 
 BoundingBox ModelLodData::GetBox() const
@@ -644,11 +661,9 @@ void ModelData::CalculateLODsScreenSizes()
 {
     const float autoComputeLodPowerBase = 0.5f;
     const int32 lodCount = LODs.Count();
-
     for (int32 lodIndex = 0; lodIndex < lodCount; lodIndex++)
     {
         auto& lod = LODs[lodIndex];
-
         if (lodIndex == 0)
         {
             lod.ScreenSize = 1.0f;
@@ -674,6 +689,8 @@ void ModelData::TransformBuffer(const Matrix& matrix)
         }
     }
 }
+
+#if USE_EDITOR
 
 bool ModelData::Pack2ModelHeader(WriteStream* stream) const
 {
@@ -724,7 +741,12 @@ bool ModelData::Pack2ModelHeader(WriteStream* stream) const
 
         // Amount of meshes
         const int32 meshes = lod.Meshes.Count();
-        if (meshes == 0 || meshes > MODEL_MAX_MESHES)
+        if (meshes == 0)
+        {
+            LOG(Warning, "Empty LOD.");
+            return true;
+        }
+        if (meshes > MODEL_MAX_MESHES)
         {
             LOG(Warning, "Too many meshes per LOD.");
             return true;
@@ -880,43 +902,51 @@ bool ModelData::Pack2SkinnedModelHeader(WriteStream* stream) const
     return false;
 }
 
-bool ModelData::Pack2AnimationHeader(WriteStream* stream) const
+bool ModelData::Pack2AnimationHeader(WriteStream* stream, int32 animIndex) const
 {
     // Validate input
-    if (stream == nullptr)
+    if (stream == nullptr || animIndex < 0 || animIndex >= Animations.Count())
     {
         Log::ArgumentNullException();
         return true;
     }
-    if (Animation.Duration <= ZeroTolerance || Animation.FramesPerSecond <= ZeroTolerance)
+    auto& anim = Animations.Get()[animIndex];
+    if (anim.Duration <= ZeroTolerance || anim.FramesPerSecond <= ZeroTolerance)
     {
         Log::InvalidOperationException(TEXT("Invalid animation duration."));
         return true;
     }
-    if (Animation.Channels.IsEmpty())
+    if (anim.Channels.IsEmpty())
     {
         Log::ArgumentOutOfRangeException(TEXT("Channels"), TEXT("Animation channels collection cannot be empty."));
         return true;
     }
 
     // Info
-    stream->WriteInt32(100); // Header version (for fast version upgrades without serialization format change)
-    stream->WriteDouble(Animation.Duration);
-    stream->WriteDouble(Animation.FramesPerSecond);
-    stream->WriteBool(Animation.EnableRootMotion);
-    stream->WriteString(Animation.RootNodeName, 13);
+    stream->WriteInt32(103); // Header version (for fast version upgrades without serialization format change)
+    stream->WriteDouble(anim.Duration);
+    stream->WriteDouble(anim.FramesPerSecond);
+    stream->WriteByte((byte)anim.RootMotionFlags);
+    stream->WriteString(anim.RootNodeName, 13);
 
     // Animation channels
-    stream->WriteInt32(Animation.Channels.Count());
-    for (int32 i = 0; i < Animation.Channels.Count(); i++)
+    stream->WriteInt32(anim.Channels.Count());
+    for (int32 i = 0; i < anim.Channels.Count(); i++)
     {
-        auto& anim = Animation.Channels[i];
-
-        stream->WriteString(anim.NodeName, 172);
-        Serialization::Serialize(*stream, anim.Position);
-        Serialization::Serialize(*stream, anim.Rotation);
-        Serialization::Serialize(*stream, anim.Scale);
+        auto& channel = anim.Channels[i];
+        stream->WriteString(channel.NodeName, 172);
+        Serialization::Serialize(*stream, channel.Position);
+        Serialization::Serialize(*stream, channel.Rotation);
+        Serialization::Serialize(*stream, channel.Scale);
     }
+
+    // Animation events
+    stream->WriteInt32(0);
+
+    // Nested animations
+    stream->WriteInt32(0);
 
     return false;
 }
+
+#endif

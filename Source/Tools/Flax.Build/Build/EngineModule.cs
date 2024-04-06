@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.IO;
 using Flax.Build.NativeCpp;
@@ -34,6 +34,10 @@ namespace Flax.Build
             {
                 options.ScriptingAPI.Defines.Add("FLAX_GAME");
             }
+
+            // Use custom precompiled header file for the engine to boost compilation time
+            options.CompileEnv.PrecompiledHeaderUsage = PrecompiledHeaderFileUsage.CreateManual;
+            options.CompileEnv.PrecompiledHeaderSource = Utilities.NormalizePath(Path.Combine(Globals.EngineRoot, "Source/FlaxEngine.pch.h"));
 
             BinaryModuleName = "FlaxEngine";
             options.ScriptingAPI.Defines.Add("FLAX");

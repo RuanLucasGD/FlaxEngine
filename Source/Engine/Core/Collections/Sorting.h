@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -45,6 +45,16 @@ public:
     };
 
 public:
+    /// <summary>
+    /// Sorts the linear data array using Quick Sort algorithm (non recursive version, uses temporary stack collection).
+    /// </summary>
+    /// <param name="data">The data container.</param>
+    template<typename T, typename AllocationType = HeapAllocation>
+    FORCE_INLINE static void QuickSort(Array<T, AllocationType>& data)
+    {
+        QuickSort(data.Get(), data.Count());
+    }
+
     /// <summary>
     /// Sorts the linear data array using Quick Sort algorithm (non recursive version, uses temporary stack collection).
     /// </summary>

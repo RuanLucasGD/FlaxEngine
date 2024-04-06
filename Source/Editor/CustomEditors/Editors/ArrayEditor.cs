@@ -1,8 +1,7 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections;
-using FlaxEditor.Scripting;
 using FlaxEngine;
 using FlaxEngine.Utilities;
 
@@ -47,8 +46,9 @@ namespace FlaxEditor.CustomEditors.Editors
                     if (elementType.IsValueType || NotNullItems)
                     {
                         // Fill new entries with the last value
+                        var lastValue = array.GetValue(oldSize - 1);
                         for (int i = oldSize; i < newSize; i++)
-                            Array.Copy(array, oldSize - 1, newValues, i, 1);
+                            newValues.SetValue(Utilities.Utils.CloneValue(lastValue), i);
                     }
                     else
                     {

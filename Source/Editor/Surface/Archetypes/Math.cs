@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using FlaxEditor.Scripting;
@@ -239,6 +239,7 @@ namespace FlaxEditor.Surface.Archetypes
                 ConnectionsHints = ConnectionsHint.Numeric,
                 IndependentBoxes = new[] { 0, 1, 2 },
                 DependentBoxes = new[] { 3 },
+                SortScore = -1, // Lower sort score to not go above Multiply node
                 DefaultValues = new object[]
                 {
                     1.0f,

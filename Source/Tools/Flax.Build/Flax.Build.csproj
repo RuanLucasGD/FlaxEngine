@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>11.0</LangVersion>
     <ImplicitUsings>disable</ImplicitUsings>
     <Nullable>annotations</Nullable>
@@ -21,6 +21,7 @@
     <ErrorReport>none</ErrorReport>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>1701;1702;8981</NoWarn>
+    <RollForward>LatestMajor</RollForward>
   </PropertyGroup>
 
   <ItemGroup>

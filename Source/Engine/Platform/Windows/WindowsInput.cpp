@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if PLATFORM_WINDOWS
 
@@ -196,6 +196,12 @@ bool WindowsMouse::WndProc(Window* window, const UINT msg, WPARAM wParam, LPARAM
     switch (msg)
     {
     case WM_MOUSEMOVE:
+    {
+        OnMouseMove(mousePos, window);
+        result = true;
+        break;
+    }    
+    case WM_NCMOUSEMOVE:
     {
         OnMouseMove(mousePos, window);
         result = true;

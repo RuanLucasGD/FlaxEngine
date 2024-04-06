@@ -1,8 +1,7 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using FlaxEditor.SceneGraph;
 using FlaxEngine;
 
@@ -165,7 +164,7 @@ namespace FlaxEditor.Actions
                         var child = children[j];
                         if (child != actor && child.Name == name)
                         {
-                            string newName = Utilities.Utils.IncrementNameNumber(name, x => IsNameValid(x));
+                            string newName = Utilities.Utils.IncrementNameNumber(name, IsNameValid);
                             foundNamesResults[newName] = true;
                             actor.Name = newName;
                             // Multiple actors may have the same name, continue

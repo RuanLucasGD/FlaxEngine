@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@
 API_CLASS(sealed, Namespace="FlaxEditor.Content.Settings", NoConstructor) class FLAXENGINE_API NavigationSettings : public SettingsBase
 {
     DECLARE_SCRIPTING_TYPE_MINIMAL(NavigationSettings);
+
 public:
     /// <summary>
     /// If checked, enables automatic navmesh actors spawning on a scenes that are using it during navigation building.

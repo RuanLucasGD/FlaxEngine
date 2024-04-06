@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -28,7 +28,7 @@ public:
     /// </summary>
     Win32CriticalSection()
     {
-        Windows::InitializeCriticalSectionEx(&_criticalSection, 100, 0x01000000);
+        Windows::InitializeCriticalSectionEx(&_criticalSection, 4000, 0x01000000);
     }
 
     /// <summary>

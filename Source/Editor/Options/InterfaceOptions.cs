@@ -1,7 +1,8 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.ComponentModel;
 using FlaxEditor.GUI.Docking;
+using FlaxEditor.Utilities;
 using FlaxEngine;
 
 namespace FlaxEditor.Options
@@ -91,6 +92,53 @@ namespace FlaxEditor.Options
         }
 
         /// <summary>
+        /// Available window modes for the game window.
+        /// </summary>
+        public enum GameWindowMode
+        {
+            /// <summary>
+            /// Shows the game window docked, inside the editor.
+            /// </summary>
+            Docked,
+
+            /// <summary>
+            /// Shows the game window as a popup.
+            /// </summary>
+            PopupWindow,
+
+            /// <summary>
+            /// Shows the game window maximized. (Same as pressing F11)
+            /// </summary>
+            MaximizedWindow,
+
+            /// <summary>
+            /// Shows the game window borderless.
+            /// </summary>
+            BorderlessWindow,
+        }
+
+        /// <summary>
+        /// Options for formatting numerical values.
+        /// </summary>
+        public enum ValueFormattingType
+        {
+            /// <summary>
+            /// No formatting.
+            /// </summary>
+            None,
+
+            /// <summary>
+            /// Format using the base SI unit.
+            /// </summary>
+            BaseUnit,
+
+            /// <summary>
+            /// Format using a unit that matches the value best.
+            /// </summary>
+            AutoUnit,
+        }
+
+        /// <summary>
         /// Gets or sets the Editor User Interface scale. Applied to all UI elements, windows and text. Can be used to scale the interface up on a bigger display. Editor restart required.
         /// </summary>
         [DefaultValue(1.0f), Limit(0.1f, 10.0f)]
@@ -149,6 +197,20 @@ namespace FlaxEditor.Options
         public FlaxEngine.GUI.Orientation ContentWindowOrientation { get; set; } = FlaxEngine.GUI.Orientation.Horizontal;
 
         /// <summary>
+        /// Gets or sets the formatting option for numeric values in the editor.
+        /// </summary>
+        [DefaultValue(ValueFormattingType.None)]
+        [EditorDisplay("Interface"), EditorOrder(300)]
+        public ValueFormattingType ValueFormatting { get; set; }
+
+        /// <summary>
+        /// Gets or sets the option to put a space between numbers and units for unit formatting.
+        /// </summary>
+        [DefaultValue(false)]
+        [EditorDisplay("Interface"), EditorOrder(310)]
+        public bool SeparateValueAndUnit { get; set; }
+
+        /// <summary>
         /// Gets or sets the timestamps prefix mode for output log messages.
         /// </summary>
         [DefaultValue(TimestampsFormats.TimeSinceStartup)]
@@ -172,9 +234,9 @@ namespace FlaxEditor.Options
             set
             {
                 if (value == null)
-                    _outputLogFont = new FontReference(FlaxEngine.Content.LoadAsyncInternal<FontAsset>(EditorAssets.InconsolataRegularFont), 10);
+                    _outputLogFont = new FontReference(ConsoleFont, 10);
                 else if (!value.Font)
-                    _outputLogFont.Font = FlaxEngine.Content.LoadAsyncInternal<FontAsset>(EditorAssets.InconsolataRegularFont);
+                    _outputLogFont.Font = ConsoleFont;
                 else
                     _outputLogFont = value;
             }
@@ -230,6 +292,13 @@ namespace FlaxEditor.Options
         public PlayAction PlayButtonAction { get; set; } = PlayAction.PlayScenes;
 
         /// <summary>
+        /// Gets or sets a value indicating how the game window should be displayed when the game is launched.
+        /// </summary>
+        [DefaultValue(GameWindowMode.Docked)]
+        [EditorDisplay("Play In-Editor", "Game Window Mode"), EditorOrder(420), Tooltip("Determines how the game window is displayed when the game is launched.")]
+        public GameWindowMode DefaultGameWindowMode { get; set; } = GameWindowMode.Docked;
+
+        /// <summary>
         /// Gets or sets a value indicating the number of game clients to launch when building and/or running cooked game.
         /// </summary>
         [DefaultValue(1), Range(1, 4)]
@@ -237,11 +306,19 @@ namespace FlaxEditor.Options
         public int NumberOfGameClientsToLaunch = 1;
 
         private static FontAsset DefaultFont => FlaxEngine.Content.LoadAsyncInternal<FontAsset>(EditorAssets.PrimaryFont);
+        private static FontAsset ConsoleFont => FlaxEngine.Content.LoadAsyncInternal<FontAsset>(EditorAssets.InconsolataRegularFont);
+
         private FontReference _titleFont = new FontReference(DefaultFont, 18);
         private FontReference _largeFont = new FontReference(DefaultFont, 14);
         private FontReference _mediumFont = new FontReference(DefaultFont, 9);
         private FontReference _smallFont = new FontReference(DefaultFont, 9);
-        private FontReference _outputLogFont = new FontReference(FlaxEngine.Content.LoadAsyncInternal<FontAsset>(EditorAssets.InconsolataRegularFont), 10);
+        private FontReference _outputLogFont = new FontReference(ConsoleFont, 10);
+
+        /// <summary>
+        /// The list of fallback fonts to use when main text font is missing certain characters. Empty to use fonts from GraphicsSettings.
+        /// </summary>
+        [EditorDisplay("Fonts"), EditorOrder(650)]
+        public FontAsset[] FallbackFonts = new FontAsset[1] { FlaxEngine.Content.LoadAsyncInternal<FontAsset>(EditorAssets.FallbackFont) };
 
         /// <summary>
         /// Gets or sets the title font for editor UI.

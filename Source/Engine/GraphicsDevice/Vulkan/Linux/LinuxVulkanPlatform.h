@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -6,7 +6,8 @@
 
 #if GRAPHICS_API_VULKAN && PLATFORM_LINUX
 
-#define VULKAN_HAS_PHYSICAL_DEVICE_PROPERTIES2 1
+// Support more backbuffers in case driver decides to use more (https://gitlab.freedesktop.org/apinheiro/mesa/-/issues/9)
+#define VULKAN_BACK_BUFFERS_COUNT_MAX 8
 
 /// <summary>
 /// The implementation for the Vulkan API support for Linux platform.

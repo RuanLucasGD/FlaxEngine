@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if COMPILE_WITH_TEXTURE_TOOL
 
@@ -15,6 +15,7 @@
 #include "Engine/Scripting/Enums.h"
 #include "Engine/Graphics/Textures/TextureData.h"
 #include "Engine/Graphics/PixelFormatExtensions.h"
+#include "Engine/Profiler/ProfilerCPU.h"
 
 #if USE_EDITOR
 #include "Engine/Core/Collections/Dictionary.h"
@@ -26,7 +27,7 @@ namespace
 
 String TextureTool::Options::ToString() const
 {
-    return String::Format(TEXT("Type: {}, IsAtlas: {}, NeverStream: {}, IndependentChannels: {}, sRGB: {}, GenerateMipMaps: {}, FlipY: {}, Scale: {}, MaxSize: {}, Resize: {}, PreserveAlphaCoverage: {}, PreserveAlphaCoverageReference: {}, SizeX: {}, SizeY: {}"),
+    return String::Format(TEXT("Type: {}, IsAtlas: {}, NeverStream: {}, IndependentChannels: {}, sRGB: {}, GenerateMipMaps: {}, FlipY: {}, InvertGreen: {} Scale: {}, MaxSize: {}, Resize: {}, PreserveAlphaCoverage: {}, PreserveAlphaCoverageReference: {}, SizeX: {}, SizeY: {}"),
                           ScriptingEnum::ToString(Type),
                           IsAtlas,
                           NeverStream,
@@ -34,6 +35,7 @@ String TextureTool::Options::ToString() const
                           sRGB,
                           GenerateMipMaps,
                           FlipY,
+                          InvertGreenChannel,
                           Scale,
                           MaxSize,
                           MaxSize,
@@ -70,6 +72,9 @@ void TextureTool::Options::Serialize(SerializeStream& stream, const void* otherO
 
     stream.JKEY("FlipY");
     stream.Bool(FlipY);
+
+    stream.JKEY("InvertGreenChannel");
+    stream.Bool(InvertGreenChannel);
 
     stream.JKEY("Resize");
     stream.Bool(Resize);
@@ -128,6 +133,7 @@ void TextureTool::Options::Deserialize(DeserializeStream& stream, ISerializeModi
     sRGB = JsonTools::GetBool(stream, "sRGB", sRGB);
     GenerateMipMaps = JsonTools::GetBool(stream, "GenerateMipMaps", GenerateMipMaps);
     FlipY = JsonTools::GetBool(stream, "FlipY", FlipY);
+    InvertGreenChannel = JsonTools::GetBool(stream, "InvertGreenChannel", InvertGreenChannel);
     Resize = JsonTools::GetBool(stream, "Resize", Resize);
     PreserveAlphaCoverage = JsonTools::GetBool(stream, "PreserveAlphaCoverage", PreserveAlphaCoverage);
     PreserveAlphaCoverageReference = JsonTools::GetFloat(stream, "PreserveAlphaCoverageReference", PreserveAlphaCoverageReference);
@@ -178,6 +184,7 @@ bool TextureTool::HasAlpha(const StringView& path)
 
 bool TextureTool::ImportTexture(const StringView& path, TextureData& textureData)
 {
+    PROFILE_CPU();
     LOG(Info, "Importing texture from \'{0}\'", path);
     const auto startTime = DateTime::NowUTC();
 
@@ -214,6 +221,7 @@ bool TextureTool::ImportTexture(const StringView& path, TextureData& textureData
 
 bool TextureTool::ImportTexture(const StringView& path, TextureData& textureData, Options options, String& errorMsg)
 {
+    PROFILE_CPU();
     LOG(Info, "Importing texture from \'{0}\'. Options: {1}", path, options.ToString());
     const auto startTime = DateTime::NowUTC();
 
@@ -262,9 +270,9 @@ bool TextureTool::ImportTexture(const StringView& path, TextureData& textureData
 
 bool TextureTool::ExportTexture(const StringView& path, const TextureData& textureData)
 {
+    PROFILE_CPU();
     LOG(Info, "Exporting texture to \'{0}\'.", path);
     const auto startTime = DateTime::NowUTC();
-
     ImageType type;
     if (GetImageType(path, type))
         return true;
@@ -274,7 +282,6 @@ bool TextureTool::ExportTexture(const StringView& path, const TextureData& textu
         return true;
     }
 
-    // Export
 #if COMPILE_WITH_DIRECTXTEX
     const auto failed = ExportTextureDirectXTex(type, path, textureData);
 #elif COMPILE_WITH_STB
@@ -298,7 +305,6 @@ bool TextureTool::ExportTexture(const StringView& path, const TextureData& textu
 
 bool TextureTool::Convert(TextureData& dst, const TextureData& src, const PixelFormat dstFormat)
 {
-    // Validate input
     if (src.GetMipLevels() == 0)
     {
         LOG(Warning, "Missing source data.");
@@ -314,6 +320,7 @@ bool TextureTool::Convert(TextureData& dst, const TextureData& src, const PixelF
         LOG(Warning, "Converting volume texture data is not supported.");
         return true;
     }
+    PROFILE_CPU();
 
 #if COMPILE_WITH_DIRECTXTEX
     return ConvertDirectXTex(dst, src, dstFormat);
@@ -327,7 +334,6 @@ bool TextureTool::Convert(TextureData& dst, const TextureData& src, const PixelF
 
 bool TextureTool::Resize(TextureData& dst, const TextureData& src, int32 dstWidth, int32 dstHeight)
 {
-    // Validate input
     if (src.GetMipLevels() == 0)
     {
         LOG(Warning, "Missing source data.");
@@ -343,7 +349,7 @@ bool TextureTool::Resize(TextureData& dst, const TextureData& src, int32 dstWidt
         LOG(Warning, "Resizing volume texture data is not supported.");
         return true;
     }
-
+    PROFILE_CPU();
 #if COMPILE_WITH_DIRECTXTEX
     return ResizeDirectXTex(dst, src, dstWidth, dstHeight);
 #elif COMPILE_WITH_STB
@@ -674,6 +680,54 @@ Color TextureTool::SampleLinear(const PixelFormatSampler* sampler, const Float2&
     return Color::Lerp(Color::Lerp(v00, v01, uvFraction.X), Color::Lerp(v10, v11, uvFraction.X), uvFraction.Y);
 }
 
+PixelFormat TextureTool::ToPixelFormat(TextureFormatType format, int32 width, int32 height, bool canCompress)
+{
+    const bool canUseBlockCompression = width % 4 == 0 && height % 4 == 0;
+    if (canCompress && canUseBlockCompression)
+    {
+        switch (format)
+        {
+        case TextureFormatType::ColorRGB:
+            return PixelFormat::BC1_UNorm;
+        case TextureFormatType::ColorRGBA:
+            return PixelFormat::BC3_UNorm;
+        case TextureFormatType::NormalMap:
+            return PixelFormat::BC5_UNorm;
+        case TextureFormatType::GrayScale:
+            return PixelFormat::BC4_UNorm;
+        case TextureFormatType::HdrRGBA:
+            return PixelFormat::BC7_UNorm;
+        case TextureFormatType::HdrRGB:
+#if PLATFORM_LINUX
+            // TODO: support BC6H compression for Linux Editor
+            return PixelFormat::BC7_UNorm;
+#else
+            return PixelFormat::BC6H_Uf16;
+#endif
+        default:
+            return PixelFormat::Unknown;
+        }
+    }
+
+    switch (format)
+    {
+    case TextureFormatType::ColorRGB:
+        return PixelFormat::R8G8B8A8_UNorm;
+    case TextureFormatType::ColorRGBA:
+        return PixelFormat::R8G8B8A8_UNorm;
+    case TextureFormatType::NormalMap:
+        return PixelFormat::R16G16_UNorm;
+    case TextureFormatType::GrayScale:
+        return PixelFormat::R8_UNorm;
+    case TextureFormatType::HdrRGBA:
+        return PixelFormat::R16G16B16A16_Float;
+    case TextureFormatType::HdrRGB:
+        return PixelFormat::R11G11B10_Float;
+    default:
+        return PixelFormat::Unknown;
+    }
+}
+
 bool TextureTool::GetImageType(const StringView& path, ImageType& type)
 {
     const auto extension = FileSystem::GetExtension(path).ToLower();
@@ -719,6 +773,33 @@ bool TextureTool::GetImageType(const StringView& path, ImageType& type)
         return true;
     }
 
+    return false;
+}
+
+bool TextureTool::Transform(TextureData& texture, const Function<void(Color&)>& transformation)
+{   
+    PROFILE_CPU();
+    auto sampler = TextureTool::GetSampler(texture.Format);
+    if (!sampler)
+        return true;
+    for (auto& slice : texture.Items)
+    {
+        for (int32 mipIndex = 0; mipIndex < slice.Mips.Count(); mipIndex++)
+        {
+            auto& mip = slice.Mips[mipIndex];
+            auto mipWidth = Math::Max(texture.Width >> mipIndex, 1);
+            auto mipHeight = Math::Max(texture.Height >> mipIndex, 1);
+            for (int32 y = 0; y < mipHeight; y++)
+            {
+                for (int32 x = 0; x < mipWidth; x++)
+                {    
+                    Color color = TextureTool::SamplePoint(sampler, x, y, mip.Data.Get(), mip.RowPitch);
+                    transformation(color);
+                    TextureTool::Store(sampler, x, y, mip.Data.Get(), mip.RowPitch, color);
+                }
+            }
+        }
+    }
     return false;
 }
 

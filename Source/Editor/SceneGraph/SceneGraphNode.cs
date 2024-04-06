@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_LARGE_WORLDS
 using Real = System.Double;
@@ -41,7 +41,11 @@ namespace FlaxEditor.SceneGraph
         protected SceneGraphNode(Guid id)
         {
             ID = id;
-            SceneGraphFactory.Nodes.Add(id, this);
+            if (SceneGraphFactory.Nodes.TryGetValue(id, out var duplicate) && duplicate != null)
+            {
+                Editor.LogWarning($"Duplicated Scene Graph node with ID {FlaxEngine.Json.JsonSerializer.GetStringID(id)} of type '{duplicate.GetType().FullName}'");
+            }
+            SceneGraphFactory.Nodes[id] = this;
         }
 
         /// <summary>
@@ -146,7 +150,6 @@ namespace FlaxEditor.SceneGraph
         {
             if (ChildNodes.Contains(node))
                 return true;
-
             return ChildNodes.Any(x => x.ContainsInHierarchy(node));
         }
 
@@ -216,6 +219,18 @@ namespace FlaxEditor.SceneGraph
             /// The flags.
             /// </summary>
             public FlagTypes Flags;
+
+            /// <summary>
+            /// The list of objects to exclude from tracing against. Null if unused.
+            /// </summary>
+            public List<SceneGraphNode> ExcludeObjects;
+
+            /// <summary>
+            /// Initializes a new instance of the <see cref="RayCastData"/> struct.
+            /// </summary>
+            public RayCastData()
+            {
+            }
         }
 
         /// <summary>
@@ -276,7 +291,7 @@ namespace FlaxEditor.SceneGraph
             SceneGraphNode minTarget = null;
             Real minDistance = Real.MaxValue;
             Vector3 minDistanceNormal = Vector3.Up;
-            if (RayCastSelf(ref ray, out distance, out normal))
+            if (RayMask(ref ray) && RayCastSelf(ref ray, out distance, out normal))
             {
                 minTarget = this;
                 minDistance = distance;
@@ -299,6 +314,18 @@ namespace FlaxEditor.SceneGraph
             distance = minDistance;
             normal = minDistanceNormal;
             return minTarget;
+        }
+
+        private bool RayMask(ref RayCastData ray)
+        {
+            if (ray.ExcludeObjects != null && ray.ExcludeObjects.Remove(this))
+            {
+                // Remove form exclude because it is passed by ref and function is recursive it will slowly shrink the list until nothing is left as a micro optimization
+                if (ray.ExcludeObjects.Count == 0)
+                    ray.ExcludeObjects = null;
+                return false;
+            }
+            return true;
         }
 
         /// <summary>
@@ -327,6 +354,19 @@ namespace FlaxEditor.SceneGraph
                 ChildNodes[i].GetEditorSphere(out var childSphere);
                 BoundingSphere.Merge(ref sphere, ref childSphere, out sphere);
             }
+        }
+
+        /// <summary>
+        /// Performs the vertex snapping for a given ray and hitDistance.
+        /// </summary>
+        /// <param name="ray">The ray to raycast.</param>
+        /// <param name="hitDistance">Hit distance from ray to object bounding box.</param>
+        /// <param name="result">The result point on the object mesh that is closest to the specified location.</param>
+        /// <returns>True if got a valid result value, otherwise false (eg. if missing data or not initialized).</returns>
+        public virtual bool OnVertexSnap(ref Ray ray, Real hitDistance, out Vector3 result)
+        {
+            result = Vector3.Zero;
+            return false;
         }
 
         /// <summary>
@@ -438,6 +478,21 @@ namespace FlaxEditor.SceneGraph
         /// </summary>
         protected virtual void OnParentChanged()
         {
+        }
+
+        /// <summary>
+        /// Randomizes the owner node identifier.
+        /// </summary>
+        /// <param name="ownerId">The owner node ID.</param>
+        /// <param name="index">The sub-object index.</param>
+        /// <returns>The sub-object ID.</returns>
+        protected static unsafe Guid GetSubID(Guid ownerId, int index)
+        {
+            var id = ownerId;
+            var idPtr = (FlaxEngine.Json.JsonSerializer.GuidInterop*)&id;
+            idPtr->B ^= (uint)(index * 387);
+            idPtr->D += (uint)(index + 1);
+            return id;
         }
     }
 }

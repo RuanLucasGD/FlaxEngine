@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -18,11 +18,9 @@ template<typename BaseType>
 class GPUShaderProgramVulkan : public BaseType
 {
 protected:
-
     GPUDeviceVulkan* _device;
 
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramVulkan"/> class.
     /// </summary>
@@ -50,7 +48,6 @@ public:
     }
 
 public:
-
     /// <summary>
     /// The Vulkan shader module.
     /// </summary>
@@ -62,7 +59,6 @@ public:
     SpirvShaderDescriptorInfo DescriptorInfo;
 
 public:
-
     // [BaseType]
     uint32 GetBufferSize() const override
     {
@@ -81,7 +77,6 @@ public:
 class GPUShaderProgramVSVulkan : public GPUShaderProgramVulkan<GPUShaderProgramVS>
 {
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramVSVulkan"/> class.
     /// </summary>
@@ -95,13 +90,11 @@ public:
     }
 
 public:
-
     VkPipelineVertexInputStateCreateInfo VertexInputState;
     VkVertexInputBindingDescription VertexBindingDescriptions[VERTEX_SHADER_MAX_INPUT_ELEMENTS];
     VkVertexInputAttributeDescription VertexAttributeDescriptions[VERTEX_SHADER_MAX_INPUT_ELEMENTS];
 
 public:
-
     // [GPUShaderProgramVulkan]
     void* GetInputLayout() const override
     {
@@ -114,13 +107,13 @@ public:
     }
 };
 
+#if GPU_ALLOW_TESSELLATION_SHADERS
 /// <summary>
 /// Hull Shader for Vulkan backend.
 /// </summary>
 class GPUShaderProgramHSVulkan : public GPUShaderProgramVulkan<GPUShaderProgramHS>
 {
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramHSVulkan"/> class.
     /// </summary>
@@ -142,7 +135,6 @@ public:
 class GPUShaderProgramDSVulkan : public GPUShaderProgramVulkan<GPUShaderProgramDS>
 {
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramDSVulkan"/> class.
     /// </summary>
@@ -155,14 +147,15 @@ public:
     {
     }
 };
+#endif
 
+#if GPU_ALLOW_GEOMETRY_SHADERS
 /// <summary>
 /// Geometry Shader for Vulkan backend.
 /// </summary>
 class GPUShaderProgramGSVulkan : public GPUShaderProgramVulkan<GPUShaderProgramGS>
 {
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramGSVulkan"/> class.
     /// </summary>
@@ -175,6 +168,7 @@ public:
     {
     }
 };
+#endif
 
 /// <summary>
 /// Pixel Shader for Vulkan backend.
@@ -182,7 +176,6 @@ public:
 class GPUShaderProgramPSVulkan : public GPUShaderProgramVulkan<GPUShaderProgramPS>
 {
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramPSVulkan"/> class.
     /// </summary>
@@ -202,11 +195,9 @@ public:
 class GPUShaderProgramCSVulkan : public GPUShaderProgramVulkan<GPUShaderProgramCS>
 {
 private:
-
     ComputePipelineStateVulkan* _pipelineState;
 
 public:
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GPUShaderProgramCSVulkan"/> class.
     /// </summary>
@@ -226,7 +217,6 @@ public:
     ~GPUShaderProgramCSVulkan();
 
 public:
-
     /// <summary>
     /// Gets the state of the pipeline for the compute shader execution or creates a new one if missing.
     /// </summary>

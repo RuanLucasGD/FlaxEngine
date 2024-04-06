@@ -1,6 +1,9 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
+#if FLAX_EDITOR
+using FlaxEditor.Options;
+#endif
 using FlaxEngine.Assertions;
 using FlaxEngine.Utilities;
 
@@ -280,13 +283,13 @@ namespace FlaxEngine.GUI
         /// </summary>
         [EditorDisplay("Border Style"), EditorOrder(2010), Tooltip("Whether to have a border."), ExpandGroups]
         public bool HasBorder { get; set; } = true;
-        
+
         /// <summary>
         /// Gets or sets the border thickness.
         /// </summary>
         [EditorDisplay("Border Style"), EditorOrder(2011), Tooltip("The thickness of the border."), Limit(0)]
         public float BorderThickness { get; set; } = 1.0f;
-        
+
         /// <summary>
         /// Gets or sets the color of the border (Transparent if not used).
         /// </summary>
@@ -471,7 +474,7 @@ namespace FlaxEngine.GUI
                                      caretPos.X - (caretWidth * 0.5f),
                                      caretPos.Y,
                                      caretWidth,
-                                     height);
+                                     height * DpiScale);
             }
         }
 
@@ -1262,7 +1265,7 @@ namespace FlaxEngine.GUI
             // Multiline scroll
             if (IsMultiline && _text.Length != 0 && IsMultilineScrollable)
             {
-                TargetViewOffset = Float2.Clamp(_targetViewOffset - new Float2(0, delta * 10.0f), Float2.Zero, new Float2(_targetViewOffset.X, _textSize.Y));
+                TargetViewOffset = Float2.Clamp(_targetViewOffset - new Float2(0, delta * 10.0f), Float2.Zero, new Float2(_targetViewOffset.X, _textSize.Y - Height));
                 return true;
             }
 
@@ -1296,6 +1299,42 @@ namespace FlaxEngine.GUI
             bool ctrDown = window.GetKey(KeyboardKeys.Control);
             KeyDown?.Invoke(key);
 
+            // Handle controls that have bindings
+#if FLAX_EDITOR
+            InputOptions options = FlaxEditor.Editor.Instance.Options.Options.Input;
+            if (options.Copy.Process(this))
+            {
+                Copy();
+                return true;
+            }
+            else if (options.Paste.Process(this))
+            {
+                Paste();
+                return true;
+            }
+            else if (options.Duplicate.Process(this))
+            {
+                Duplicate();
+                return true;
+            }
+            else if (options.Cut.Process(this))
+            {
+                Cut();
+                return true;
+            }
+            else if (options.SelectAll.Process(this))
+            {
+                SelectAll();
+                return true;
+            }
+            else if (options.DeselectAll.Process(this))
+            {
+                Deselect();
+                return true;
+            }
+#endif
+
+            // Handle controls without bindings
             switch (key)
             {
             case KeyboardKeys.ArrowRight:
@@ -1417,6 +1456,7 @@ namespace FlaxEngine.GUI
                 {
                     // Insert new line
                     Insert('\n');
+                    ScrollToCaret();
                 }
                 else if (!IsNavFocused)
                 {

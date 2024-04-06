@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -127,8 +127,7 @@ namespace Flax.Build.NativeCpp
                 LinkAsConsoleProgram = LinkAsConsoleProgram,
                 GenerateDocumentation = GenerateDocumentation
             };
-            foreach (var e in InputFiles)
-                clone.InputFiles.Add(e);
+            clone.InputFiles.AddRange(InputFiles);
             clone.DocumentationFiles.AddRange(DocumentationFiles);
             clone.InputLibraries.AddRange(InputLibraries);
             clone.LibraryPaths.AddRange(LibraryPaths);

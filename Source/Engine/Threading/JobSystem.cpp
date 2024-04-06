@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "JobSystem.h"
 #include "IRunnable.h"
@@ -93,7 +93,7 @@ struct TIsPODType<JobContext>
 namespace
 {
     JobSystemService JobSystemInstance;
-    Thread* Threads[PLATFORM_THREADS_LIMIT] = {};
+    Thread* Threads[PLATFORM_THREADS_LIMIT / 2] = {};
     int32 ThreadsCount = 0;
     bool JobStartingOnDispatch = true;
     volatile int64 ExitFlag = 0;
@@ -105,7 +105,7 @@ namespace
     CriticalSection WaitMutex;
     CriticalSection JobsLocker;
 #if JOB_SYSTEM_USE_MUTEX
-    RingBuffer<JobData, InlinedAllocation<256>> Jobs;
+    RingBuffer<JobData> Jobs;
 #else
     ConcurrentQueue<JobData> Jobs;
 #endif

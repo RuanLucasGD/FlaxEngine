@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -60,13 +60,26 @@ namespace FlaxEditor.Modules
         {
         }
 
+        private void BulkScenesSelectUpdate(bool select = true)
+        {
+            // Blank list deselects all
+            Select(select ? Editor.Scene.Root.ChildNodes : new List<SceneGraphNode>());
+        }
+
         /// <summary>
         /// Selects all scenes.
         /// </summary>
         public void SelectAllScenes()
         {
-            // Select all scenes (linked to the root node)
-            Select(Editor.Scene.Root.ChildNodes);
+            BulkScenesSelectUpdate(true);
+        }
+
+        /// <summary>
+        /// Deselects all scenes.
+        /// </summary>
+        public void DeselectAllScenes()
+        {
+            BulkScenesSelectUpdate(false);
         }
 
         /// <summary>
@@ -88,7 +101,10 @@ namespace FlaxEditor.Modules
         public void Select(List<SceneGraphNode> selection, bool additive = false)
         {
             if (selection == null)
-                throw new ArgumentNullException();
+            {
+                Deselect();
+                return;
+            }
 
             // Prevent from selecting null nodes
             selection.RemoveAll(x => x == null);
@@ -320,7 +336,7 @@ namespace FlaxEditor.Modules
             actorNode.PostSpawn();
 
             // Create undo action
-            IUndoAction action = new DeleteActorsAction(new List<SceneGraphNode>(1) { actorNode }, true);
+            IUndoAction action = new DeleteActorsAction(actorNode, true);
             if (autoSelect)
             {
                 var before = Selection.ToArray();
@@ -532,6 +548,41 @@ namespace FlaxEditor.Modules
         {
             Copy();
             Delete();
+        }
+
+        /// <summary>
+        /// Create parent for selected actors.
+        /// </summary>
+        public void CreateParentForSelectedActors()
+        {
+            Actor actor = new EmptyActor();
+            Editor.SceneEditing.Spawn(actor, null, false);
+            List<SceneGraphNode> selection = Editor.SceneEditing.Selection;
+            var actors = selection.Where(x => x is ActorNode).Select(x => ((ActorNode)x).Actor);
+            using (new UndoMultiBlock(Undo, actors, "Reparent actors"))
+            {
+                for (int i = 0; i < selection.Count; i++)
+                {
+                    if (selection[i] is ActorNode node)
+                    {
+                        if (node.ParentNode != node.ParentScene) // If parent node is not a scene
+                        {
+                            if (selection.Contains(node.ParentNode))
+                            {
+                                continue; // If parent and child nodes selected together, don't touch child nodes
+                            }
+
+                            // Put created node as child of the Parent Node of node
+                            int parentOrder = node.Actor.OrderInParent;
+                            actor.Parent = node.Actor.Parent;
+                            actor.OrderInParent = parentOrder;
+                        }
+                        node.Actor.Parent = actor;
+                    }
+                }
+            }
+            Editor.SceneEditing.Select(actor);
+            Editor.Scene.GetActorNode(actor).TreeNode.StartRenaming(Editor.Windows.SceneWin, Editor.Windows.SceneWin.SceneTreePanel);
         }
 
         /// <summary>

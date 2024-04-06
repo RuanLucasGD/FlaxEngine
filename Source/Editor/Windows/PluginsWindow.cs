@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -95,6 +95,7 @@ namespace FlaxEditor.Windows
                     Bounds = new Rectangle(nameLabel.X, tmp1, nameLabel.Width, Height - tmp1 - margin),
                 };
 
+                var xOffset = nameLabel.Width;
                 string versionString = string.Empty;
                 if (desc.IsAlpha)
                     versionString = "ALPHA ";
@@ -109,7 +110,7 @@ namespace FlaxEditor.Windows
                     AnchorPreset = AnchorPresets.TopRight,
                     Text = versionString,
                     Parent = this,
-                    Bounds = new Rectangle(Width - 140 - margin, margin, 140, 14),
+                    Bounds = new Rectangle(Width - 140 - margin - xOffset, margin, 140, 14),
                 };
 
                 string url = null;
@@ -129,7 +130,7 @@ namespace FlaxEditor.Windows
                     AnchorPreset = AnchorPresets.TopRight,
                     Text = desc.Author,
                     Parent = this,
-                    Bounds = new Rectangle(Width - authorWidth - margin, versionLabel.Bottom + margin, authorWidth, 14),
+                    Bounds = new Rectangle(Width - authorWidth - margin - xOffset, versionLabel.Bottom + margin, authorWidth, 14),
                 };
                 if (url != null)
                 {
@@ -190,7 +191,7 @@ namespace FlaxEditor.Windows
             };
             _addPluginProjectButton = new Button
             {
-                Text = "Create Plugin Project",
+                Text = "Create Project",
                 TooltipText = "Add new plugin project.",
                 AnchorPreset = AnchorPresets.TopLeft,
                 LocalLocation = new Float2(70, 18),
@@ -201,7 +202,7 @@ namespace FlaxEditor.Windows
 
             _cloneProjectButton = new Button
             {
-                Text = "Clone Plugin Project",
+                Text = "Clone Project",
                 TooltipText = "Git Clone a plugin project.",
                 AnchorPreset = AnchorPresets.TopLeft,
                 LocalLocation = new Float2(70 + _addPluginProjectButton.Size.X + 8, 18),
@@ -381,6 +382,7 @@ namespace FlaxEditor.Windows
                     Arguments = $"clone {gitPath} \"{clonePath}\"",
                     ShellExecute = false,
                     LogOutput = true,
+                    WaitForEnd = true
                 };
                 Platform.CreateProcess(ref settings);
             }
@@ -392,25 +394,49 @@ namespace FlaxEditor.Windows
 
             Editor.Log("Plugin project has been cloned.");
 
+            try
+            {
+                // Start git submodule clone
+                var settings = new CreateProcessSettings
+                {
+                    FileName = "git",
+                    WorkingDirectory = clonePath,
+                    Arguments = "submodule update --init",
+                    ShellExecute = false,
+                    LogOutput = true,
+                    WaitForEnd = true
+                };
+                Platform.CreateProcess(ref settings);
+            }
+            catch (Exception e)
+            {
+                Editor.LogError($"Failed Git submodule process. {e}");
+                return;
+            }
+
             // Find project config file. Could be different then what the user named the folder.
-            var files = Directory.GetFiles(clonePath);
             string pluginProjectName = "";
-            foreach (var file in files)
+            foreach (var file in Directory.GetFiles(clonePath))
             {
                 if (file.Contains(".flaxproj", StringComparison.OrdinalIgnoreCase))
                 {
                     pluginProjectName = Path.GetFileNameWithoutExtension(file);
-                    Debug.Log(pluginProjectName);
+                    break;
                 }
             }
-
             if (string.IsNullOrEmpty(pluginProjectName))
-                Editor.LogError("Failed to find plugin project file to add to Project config. Please add manually.");
-            else
             {
-                await AddReferenceToProject(pluginName, pluginProjectName);
-                MessageBox.Show($"{pluginName} has been successfully cloned. Restart editor for changes to take effect.", "Plugin Project Created", MessageBoxButtons.OK);
+                Editor.LogError("Failed to find plugin project file to add to Project config. Please add manually.");
+                return;
             }
+
+            await AddModuleReferencesInGameModule(clonePath);
+            await AddReferenceToProject(pluginName, pluginProjectName);
+
+            if (Editor.Options.Options.SourceCode.AutoGenerateScriptsProjectFiles)
+                Editor.ProgressReporting.GenerateScriptsProjectFiles.RunAsync();
+
+            MessageBox.Show($"{pluginName} has been successfully cloned. Restart editor for changes to take effect.", "Plugin Project Created", MessageBoxButtons.OK);
         }
 
         private void OnAddButtonClicked()
@@ -646,11 +672,11 @@ namespace FlaxEditor.Windows
             Editor.Log($"Using plugin code type name: {pluginCodeName}");
 
             var oldPluginPath = Path.Combine(extractPath, "ExamplePlugin-master");
-            var newPluginPath = Path.Combine(extractPath, pluginName);
+            var newPluginPath = Path.Combine(extractPath, pluginCodeName);
             Directory.Move(oldPluginPath, newPluginPath);
 
             var oldFlaxProjFile = Path.Combine(newPluginPath, "ExamplePlugin.flaxproj");
-            var newFlaxProjFile = Path.Combine(newPluginPath, $"{pluginName}.flaxproj");
+            var newFlaxProjFile = Path.Combine(newPluginPath, $"{pluginCodeName}.flaxproj");
             File.Move(oldFlaxProjFile, newFlaxProjFile);
 
             var readme = Path.Combine(newPluginPath, "README.md");
@@ -662,7 +688,7 @@ namespace FlaxEditor.Windows
 
             // Flax plugin project file
             var flaxPluginProjContents = JsonSerializer.Deserialize<ProjectInfo>(await File.ReadAllTextAsync(newFlaxProjFile));
-            flaxPluginProjContents.Name = pluginName;
+            flaxPluginProjContents.Name = pluginCodeName;
             if (!string.IsNullOrEmpty(pluginVersion))
                 flaxPluginProjContents.Version = new Version(pluginVersion);
             if (!string.IsNullOrEmpty(companyName))
@@ -726,8 +752,43 @@ namespace FlaxEditor.Windows
             }
             Editor.Log($"Plugin project {pluginName} has successfully been created.");
 
-            await AddReferenceToProject(pluginName, pluginName);
+            await AddReferenceToProject(pluginCodeName, pluginCodeName);
             MessageBox.Show($"{pluginName} has been successfully created. Restart editor for changes to take effect.", "Plugin Project Created", MessageBoxButtons.OK);
+        }
+
+        private async Task AddModuleReferencesInGameModule(string pluginFolderPath)
+        {
+            // Common game build script location
+            var gameScript = Path.Combine(Globals.ProjectFolder, "Source/Game/Game.Build.cs");
+            if (File.Exists(gameScript))
+            {
+                var gameScriptContents = await File.ReadAllTextAsync(gameScript);
+                var insertLocation = gameScriptContents.IndexOf("base.Setup(options);", StringComparison.Ordinal);
+                if (insertLocation != -1)
+                {
+                    insertLocation += 20;
+                    var modifiedAny = false;
+
+                    // Find all code modules in a plugin to auto-reference them in game build script
+                    foreach (var subDir in Directory.GetDirectories(Path.Combine(pluginFolderPath, "Source")))
+                    {
+                        var pluginModuleName = Path.GetFileName(subDir);
+                        var pluginModuleScriptPath = Path.Combine(subDir, pluginModuleName + ".Build.cs");
+                        if (File.Exists(pluginModuleScriptPath))
+                        {
+                            var text = await File.ReadAllTextAsync(pluginModuleScriptPath);
+                            if (!text.Contains("GameEditorModule", StringComparison.OrdinalIgnoreCase))
+                            {
+                                gameScriptContents = gameScriptContents.Insert(insertLocation, $"\n        options.PublicDependencies.Add(\"{pluginModuleName}\");");
+                                modifiedAny = true;
+                            }
+                        }
+                    }
+
+                    if (modifiedAny)
+                        await File.WriteAllTextAsync(gameScript, gameScriptContents, Encoding.UTF8);
+                }
+            }
         }
 
         private async Task AddReferenceToProject(string pluginFolderName, string pluginName)

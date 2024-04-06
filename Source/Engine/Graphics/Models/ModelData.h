@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -358,20 +358,47 @@ struct FLAXENGINE_API MaterialSlotEntry
 
     struct
     {
+        float Value = 0.5f;
+        int32 TextureIndex = -1;
+    } Roughness;
+
+    struct
+    {
         int32 TextureIndex = -1;
     } Normals;
 
     bool TwoSided = false;
 
     bool UsesProperties() const;
+    static float ShininessToRoughness(float shininess);
+};
+
+/// <summary>
+/// Data container for model hierarchy node.
+/// </summary>
+struct FLAXENGINE_API ModelDataNode
+{
+    /// <summary>
+    /// The parent node index. The root node uses value -1.
+    /// </summary>
+    int32 ParentIndex;
+
+    /// <summary>
+    /// The local transformation of the node, relative to the parent node.
+    /// </summary>
+    Transform LocalTransform;
+
+    /// <summary>
+    /// The name of this node.
+    /// </summary>
+    String Name;
 };
 
 /// <summary>
 /// Data container for LOD metadata and sub meshes.
 /// </summary>
-class FLAXENGINE_API ModelLodData
+struct FLAXENGINE_API ModelLodData
 {
-public:
     /// <summary>
     /// The screen size to switch LODs. Bottom limit of the model screen size to render this LOD.
     /// </summary>
@@ -382,21 +409,10 @@ public:
     /// </summary>
     Array<MeshData*> Meshes;
 
-public:
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ModelLodData"/> class.
-    /// </summary>
-    ModelLodData()
-    {
-    }
-
     /// <summary>
     /// Finalizes an instance of the <see cref="ModelLodData"/> class.
     /// </summary>
-    ~ModelLodData()
-    {
-        Meshes.ClearDelete();
-    }
+    ~ModelLodData();
 
     /// <summary>
     /// Gets the bounding box combined for all meshes in this model LOD.
@@ -426,7 +442,7 @@ public:
     Array<MaterialSlotEntry> Materials;
 
     /// <summary>
-    /// Array with all LODs. The first element is the top most LOD0 followed by the LOD1, LOD2, etc.
+    /// Array with all Level Of Details that contain meshes. The first element is the top most LOD0 followed by the LOD1, LOD2, etc.
     /// </summary>
     Array<ModelLodData> LODs;
 
@@ -436,23 +452,19 @@ public:
     SkeletonData Skeleton;
 
     /// <summary>
+    /// The scene nodes (in hierarchy).
+    /// </summary>
+    Array<ModelDataNode> Nodes;
+
+    /// <summary>
     /// The node animations.
     /// </summary>
-    AnimationData Animation;
-
-public:
-    /// <summary>
-    /// Initializes a new instance of the <see cref="ModelData"/> class.
-    /// </summary>
-    ModelData()
-    {
-    }
+    Array<AnimationData> Animations;
 
 public:
     /// <summary>
     /// Gets the valid level of details count.
     /// </summary>
-    /// <returns>The LOD count.</returns>
     FORCE_INLINE int32 GetLODsCount() const
     {
         return LODs.Count();
@@ -461,7 +473,6 @@ public:
     /// <summary>
     /// Determines whether this instance has valid skeleton structure.
     /// </summary>
-    /// <returns>True if has skeleton, otherwise false.</returns>
     FORCE_INLINE bool HasSkeleton() const
     {
         return Skeleton.Bones.HasItems();
@@ -479,6 +490,7 @@ public:
     /// <param name="matrix">The matrix to use for the transformation.</param>
     void TransformBuffer(const Matrix& matrix);
 
+#if USE_EDITOR
 public:
     /// <summary>
     /// Pack mesh data to the header stream
@@ -498,6 +510,8 @@ public:
     /// Pack animation data to the header stream
     /// </summary>
     /// <param name="stream">Output stream</param>
+    /// <param name="animIndex">Index of animation.</param>
     /// <returns>True if cannot save data, otherwise false</returns>
-    bool Pack2AnimationHeader(WriteStream* stream) const;
+    bool Pack2AnimationHeader(WriteStream* stream, int32 animIndex = 0) const;
+#endif
 };

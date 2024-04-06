@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Level.h"
 #include "ActorsCache.h"
@@ -12,6 +12,7 @@
 #include "Engine/Core/ObjectsRemovalService.h"
 #include "Engine/Core/Config/LayersTagsSettings.h"
 #include "Engine/Core/Types/LayersMask.h"
+#include "Engine/Core/Types/Stopwatch.h"
 #include "Engine/Debug/Exceptions/ArgumentException.h"
 #include "Engine/Debug/Exceptions/ArgumentNullException.h"
 #include "Engine/Debug/Exceptions/InvalidOperationException.h"
@@ -439,7 +440,7 @@ public:
 
     bool Do() const override
     {
-        auto scene = Scripting::FindObject<Scene>(TargetScene);
+        auto scene = Level::FindScene(TargetScene);
         if (!scene)
             return true;
         return unloadScene(scene);
@@ -868,13 +869,11 @@ bool Level::loadScene(rapidjson_flax::Document& document, Scene** outScene)
 bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** outScene)
 {
     PROFILE_CPU_NAMED("Level.LoadScene");
-
     if (outScene)
         *outScene = nullptr;
-
     LOG(Info, "Loading scene...");
-    const DateTime startTime = DateTime::NowUTC();
-    _lastSceneLoadTime = startTime;
+    Stopwatch stopwatch;
+    _lastSceneLoadTime = DateTime::Now();
 
     // Here whole scripting backend should be loaded for current project
     // Later scripts will setup attached scripts and restore initial vars
@@ -925,7 +924,6 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
     // Create scene actor
     // Note: the first object in the scene file data is a Scene Actor
     auto scene = New<Scene>(ScriptingObjectSpawnParams(sceneId, Scene::TypeInitializer));
-    scene->LoadTime = startTime;
     scene->RegisterObject();
     scene->Deserialize(data[0], modifier.Value);
 
@@ -934,13 +932,13 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
 
     // Loaded scene objects list
     CollectionPoolCache<ActorsCache::SceneObjectsListType>::ScopeCache sceneObjects = ActorsCache::SceneObjectsListCache.Get();
-    const int32 objectsCount = (int32)data.Size();
-    sceneObjects->Resize(objectsCount);
+    const int32 dataCount = (int32)data.Size();
+    sceneObjects->Resize(dataCount);
     sceneObjects->At(0) = scene;
 
     // Spawn all scene objects
     SceneObjectsFactory::Context context(modifier.Value);
-    context.Async = JobSystem::GetThreadsCount() > 1 && objectsCount > 10;
+    context.Async = JobSystem::GetThreadsCount() > 1 && dataCount > 10;
     {
         PROFILE_CPU_NAMED("Spawn");
         SceneObject** objects = sceneObjects->Get();
@@ -963,12 +961,12 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
                 }
                 else
                     SceneObjectsFactory::HandleObjectDeserializationError(stream);
-            }, objectsCount - 1);
+            }, dataCount - 1);
             ScenesLock.Lock();
         }
         else
         {
-            for (int32 i = 1; i < objectsCount; i++) // start from 1. at index [0] was scene
+            for (int32 i = 1; i < dataCount; i++) // start from 1. at index [0] was scene
             {
                 auto& stream = data[i];
                 auto obj = SceneObjectsFactory::Spawn(context, stream);
@@ -1012,13 +1010,13 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
                     SceneObjectsFactory::Deserialize(context, obj, data[i]);
                     idMapping = nullptr;
                 }
-            }, objectsCount - 1);
+            }, dataCount - 1);
             ScenesLock.Lock();
         }
         else
         {
             Scripting::ObjectsLookupIdMapping.Set(&modifier.Value->IdsMapping);
-            for (int32 i = 1; i < objectsCount; i++) // start from 1. at index [0] was scene
+            for (int32 i = 1; i < dataCount; i++) // start from 1. at index [0] was scene
             {
                 auto& objData = data[i];
                 auto obj = objects[i];
@@ -1049,7 +1047,7 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
         PROFILE_CPU_NAMED("Initialize");
 
         SceneObject** objects = sceneObjects->Get();
-        for (int32 i = 0; i < objectsCount; i++)
+        for (int32 i = 0; i < dataCount; i++)
         {
             SceneObject* obj = objects[i];
             if (obj)
@@ -1064,6 +1062,7 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
                 }
             }
         }
+        prefabSyncData.InitNewObjects();
     }
 
     // /\ all above this has to be done on an any thread
@@ -1083,7 +1082,8 @@ bool Level::loadScene(rapidjson_flax::Value& data, int32 engineBuild, Scene** ou
     // Fire event
     CallSceneEvent(SceneEventType::OnSceneLoaded, scene, sceneId);
 
-    LOG(Info, "Scene loaded in {0} ms", (int32)(DateTime::NowUTC() - startTime).GetTotalMilliseconds());
+    stopwatch.Stop();
+    LOG(Info, "Scene loaded in {0}ms", stopwatch.GetMilliseconds());
     if (outScene)
         *outScene = scene;
     return false;
@@ -1112,8 +1112,7 @@ bool LevelImpl::saveScene(Scene* scene, const String& path)
     auto sceneId = scene->GetID();
 
     LOG(Info, "Saving scene {0} to \'{1}\'", scene->GetName(), path);
-    const DateTime startTime = DateTime::NowUTC();
-    scene->SaveTime = startTime;
+    Stopwatch stopwatch;
 
     // Serialize to json
     rapidjson_flax::StringBuffer buffer;
@@ -1131,7 +1130,8 @@ bool LevelImpl::saveScene(Scene* scene, const String& path)
         return true;
     }
 
-    LOG(Info, "Scene saved! Time {0} ms", Math::CeilToInt((float)(DateTime::NowUTC() - startTime).GetTotalMilliseconds()));
+    stopwatch.Stop();
+    LOG(Info, "Scene saved! Time {0}ms", stopwatch.GetMilliseconds());
 
 #if USE_EDITOR
     // Reload asset at the target location if is loaded
@@ -1211,10 +1211,8 @@ bool Level::SaveSceneToBytes(Scene* scene, rapidjson_flax::StringBuffer& outData
 {
     ASSERT(scene);
     ScopeLock lock(_sceneActionsLocker);
-
+    Stopwatch stopwatch;
     LOG(Info, "Saving scene {0} to bytes", scene->GetName());
-    const DateTime startTime = DateTime::NowUTC();
-    scene->SaveTime = startTime;
 
     // Serialize to json
     if (saveScene(scene, outData, prettyJson))
@@ -1223,8 +1221,8 @@ bool Level::SaveSceneToBytes(Scene* scene, rapidjson_flax::StringBuffer& outData
         return true;
     }
 
-    // Info
-    LOG(Info, "Scene saved! Time {0} ms", Math::CeilToInt(static_cast<float>((DateTime::NowUTC() - startTime).GetTotalMilliseconds())));
+    stopwatch.Stop();
+    LOG(Info, "Scene saved! Time {0}ms", stopwatch.GetMilliseconds());
 
     // Fire event
     CallSceneEvent(SceneEventType::OnSceneSaved, scene, scene->GetID());
@@ -1395,13 +1393,13 @@ Actor* Level::FindActor(const StringView& name)
     return result;
 }
 
-Actor* Level::FindActor(const MClass* type)
+Actor* Level::FindActor(const MClass* type, bool activeOnly)
 {
     CHECK_RETURN(type, nullptr);
     Actor* result = nullptr;
     ScopeLock lock(ScenesLock);
     for (int32 i = 0; result == nullptr && i < Scenes.Count(); i++)
-        result = Scenes[i]->FindActor(type);
+        result = Scenes[i]->FindActor(type, activeOnly);
     return result;
 }
 
@@ -1415,29 +1413,33 @@ Actor* Level::FindActor(const MClass* type, const StringView& name)
     return result;
 }
 
-Actor* FindActorRecursive(Actor* node, const Tag& tag)
+Actor* FindActorRecursive(Actor* node, const Tag& tag, bool activeOnly)
 {
+    if (activeOnly && !node->GetIsActive())
+        return nullptr;
     if (node->HasTag(tag))
         return node;
     Actor* result = nullptr;
     for (Actor* child : node->Children)
     {
-        result = FindActorRecursive(child, tag);
+        result = FindActorRecursive(child, tag, activeOnly);
         if (result)
             break;
     }
     return result;
 }
 
-Actor* FindActorRecursiveByType(Actor* node, const MClass* type, const Tag& tag)
+Actor* FindActorRecursiveByType(Actor* node, const MClass* type, const Tag& tag, bool activeOnly)
 {
     CHECK_RETURN(type, nullptr);
+    if (activeOnly && !node->GetIsActive())
+        return nullptr;
     if (node->HasTag(tag) && node->GetClass()->IsSubClassOf(type))
         return node;
     Actor* result = nullptr;
     for (Actor* child : node->Children)
     {
-        result = FindActorRecursiveByType(child, type, tag);
+        result = FindActorRecursiveByType(child, type, tag, activeOnly);
         if (result)
             break;
     }
@@ -1470,30 +1472,30 @@ void FindActorsRecursiveByParentTags(Actor* node, const Array<Tag>& tags, const 
         FindActorsRecursiveByParentTags(child, tags, activeOnly, result);
 }
 
-Actor* Level::FindActor(const Tag& tag, Actor* root)
+Actor* Level::FindActor(const Tag& tag, bool activeOnly, Actor* root)
 {
     PROFILE_CPU();
     if (root)
-        return FindActorRecursive(root, tag);
+        return FindActorRecursive(root, tag, activeOnly);
     Actor* result = nullptr;
     for (Scene* scene : Scenes)
     {
-        result = FindActorRecursive(scene, tag);
+        result = FindActorRecursive(scene, tag, activeOnly);
         if (result)
             break;
     }
     return result;
 }
 
-Actor* Level::FindActor(const MClass* type, const Tag& tag, Actor* root)
+Actor* Level::FindActor(const MClass* type, const Tag& tag, bool activeOnly, Actor* root)
 {
     CHECK_RETURN(type, nullptr);
     if (root)
-        return FindActorRecursiveByType(root, type, tag);
+        return FindActorRecursiveByType(root, type, tag, activeOnly);
     Actor* result = nullptr;
     ScopeLock lock(ScenesLock);
     for (int32 i = 0; result == nullptr && i < Scenes.Count(); i++)
-        result = Scenes[i]->FindActor(type, tag);
+        result = Scenes[i]->FindActor(type, tag, activeOnly);
     return result;
 }
 
@@ -1564,12 +1566,14 @@ Script* Level::FindScript(const MClass* type)
 
 namespace
 {
-    void GetActors(const MClass* type, Actor* actor, Array<Actor*>& result)
+    void GetActors(const MClass* type, Actor* actor, bool activeOnly, Array<Actor*>& result)
     {
+        if (activeOnly && !actor->GetIsActive())
+            return;
         if (actor->GetClass()->IsSubClassOf(type))
             result.Add(actor);
         for (auto child : actor->Children)
-            GetActors(type, child, result);
+            GetActors(type, child, activeOnly, result);
     }
 
     void GetScripts(const MClass* type, Actor* actor, Array<Script*>& result)
@@ -1582,13 +1586,13 @@ namespace
     }
 }
 
-Array<Actor*> Level::GetActors(const MClass* type)
+Array<Actor*> Level::GetActors(const MClass* type, bool activeOnly)
 {
     Array<Actor*> result;
     CHECK_RETURN(type, result);
     ScopeLock lock(ScenesLock);
     for (int32 i = 0; i < Scenes.Count(); i++)
-        ::GetActors(type, Scenes[i], result);
+        ::GetActors(type, Scenes[i], activeOnly, result);
     return result;
 }
 

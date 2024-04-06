@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Engine/Platform/FileSystem.h"
 #include "Engine/Platform/File.h"
@@ -240,12 +240,7 @@ bool FileSystemBase::CopyFile(const String& dst, const String& src)
 
 bool FileSystemBase::CopyDirectory(const String& dst, const String& src, bool withSubDirectories)
 {
-    // Check if source exists
-    if (!FileSystem::DirectoryExists(*src))
-        return false;
-
-    // Copy
-    return FileSystemBase::DirectoryCopyHelper(dst, src, withSubDirectories);
+    return !FileSystem::DirectoryExists(*src) || FileSystemBase::DirectoryCopyHelper(dst, src, withSubDirectories);
 }
 
 uint64 FileSystemBase::GetDirectorySize(const StringView& path)

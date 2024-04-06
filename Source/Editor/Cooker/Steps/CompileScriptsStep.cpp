@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "CompileScriptsStep.h"
 #include "Editor/Scripting/ScriptsBuilder.h"
@@ -188,8 +188,8 @@ bool CompileScriptsStep::Perform(CookingData& data)
     LOG(Info, "Starting scripts compilation for game...");
     const String logFile = data.CacheDirectory / TEXT("CompileLog.txt");
     auto args = String::Format(
-        TEXT("-log -logfile=\"{4}\" -build -mutex -buildtargets={0} -platform={1} -arch={2} -configuration={3} -aotMode={5}"),
-        target, platform, architecture, configuration, logFile, ToString(data.Tools->UseAOT()));
+        TEXT("-log -logfile=\"{4}\" -build -mutex -buildtargets={0} -platform={1} -arch={2} -configuration={3} -aotMode={5} {6}"),
+        target, platform, architecture, configuration, logFile, ToString(data.Tools->UseAOT()), GAME_BUILD_DOTNET_VER);
 #if PLATFORM_WINDOWS
     if (data.Platform == BuildPlatform::LinuxX64)
 #elif PLATFORM_LINUX

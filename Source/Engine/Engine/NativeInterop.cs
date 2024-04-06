@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_NETCORE
 
@@ -48,7 +48,7 @@ namespace FlaxEngine.Interop
 #endif
         private static Dictionary<object, ManagedHandle> classAttributesCacheCollectible = new();
         private static Dictionary<Assembly, ManagedHandle> assemblyHandles = new();
-        private static Dictionary<Type, int> _typeSizeCache = new();
+        private static ConcurrentDictionary<Type, int> _typeSizeCache = new();
 
         private static Dictionary<string, IntPtr> loadedNativeLibraries = new();
         internal static Dictionary<string, string> libraryPaths = new();
@@ -130,12 +130,10 @@ namespace FlaxEngine.Interop
             object obj = objectHandle.Target;
             if (obj is not Object)
                 return;
-
             {
                 ref IntPtr fieldRef = ref FieldHelper.GetReferenceTypeFieldReference<IntPtr>(unmanagedPtrFieldOffset, ref obj);
                 fieldRef = unmanagedPtr;
             }
-
             if (idPtr != IntPtr.Zero)
             {
                 ref Guid nativeId = ref Unsafe.AsRef<Guid>(idPtr.ToPointer());
@@ -148,8 +146,16 @@ namespace FlaxEngine.Interop
         internal static ManagedHandle ScriptingObjectCreate(ManagedHandle typeHandle, IntPtr unmanagedPtr, IntPtr idPtr)
         {
             TypeHolder typeHolder = Unsafe.As<TypeHolder>(typeHandle.Target);
-            object obj = typeHolder.CreateScriptingObject(unmanagedPtr, idPtr);
-            return ManagedHandle.Alloc(obj);
+            try
+            {
+                object obj = typeHolder.CreateScriptingObject(unmanagedPtr, idPtr);
+                return ManagedHandle.Alloc(obj);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+            return new ManagedHandle();
         }
 #endif
 
@@ -249,7 +255,7 @@ namespace FlaxEngine.Interop
         /// <param name="src">The input array.</param>
         /// <param name="convertFunc">Converter callback.</param>
         /// <returns>The output array.</returns>
-        public static TDst[] ConvertArray<TSrc, TDst>(Span<TSrc> src, Func<TSrc, TDst> convertFunc)
+        public static TDst[] ConvertArray<TSrc, TDst>(this Span<TSrc> src, Func<TSrc, TDst> convertFunc)
         {
             TDst[] dst = new TDst[src.Length];
             for (int i = 0; i < src.Length; i++)
@@ -265,7 +271,7 @@ namespace FlaxEngine.Interop
         /// <param name="src">The input array.</param>
         /// <param name="convertFunc">Converter callback.</param>
         /// <returns>The output array.</returns>
-        public static TDst[] ConvertArray<TSrc, TDst>(TSrc[] src, Func<TSrc, TDst> convertFunc)
+        public static TDst[] ConvertArray<TSrc, TDst>(this TSrc[] src, Func<TSrc, TDst> convertFunc)
         {
             TDst[] dst = new TDst[src.Length];
             for (int i = 0; i < src.Length; i++)
@@ -1135,7 +1141,7 @@ namespace FlaxEngine.Interop
                     marshallers[i](fields[i], offsets[i], ref managedValue, fieldPtr, out int fieldSize);
                     fieldPtr += fieldSize;
                 }
-                Assert.IsTrue((fieldPtr - nativePtr) <= Unsafe.SizeOf<T>());
+                //Assert.IsTrue((fieldPtr - nativePtr) <= GetTypeSize(typeof(T)));
             }
 
             internal static void ToManaged(ref T managedValue, IntPtr nativePtr, bool byRef)
@@ -1182,7 +1188,7 @@ namespace FlaxEngine.Interop
                     marshallers[i](fields[i], offsets[i], ref managedValue, nativePtr, out int fieldSize);
                     nativePtr += fieldSize;
                 }
-                Assert.IsTrue((nativePtr - fieldPtr) <= Unsafe.SizeOf<T>());
+                //Assert.IsTrue((nativePtr - fieldPtr) <= GetTypeSize(typeof(T)));
             }
 
             internal static void ToNative(ref T managedValue, IntPtr nativePtr)
@@ -1331,38 +1337,49 @@ namespace FlaxEngine.Interop
                 // Skip using in-built delegate for value types (eg. Transform) to properly handle instance value passing to method
                 if (invokeDelegate == null && !method.DeclaringType.IsValueType)
                 {
-                    List<Type> methodTypes = new List<Type>();
-                    if (!method.IsStatic)
-                        methodTypes.Add(method.DeclaringType);
-                    if (returnType != typeof(void))
-                        methodTypes.Add(returnType);
-                    methodTypes.AddRange(parameterTypes);
-
-                    List<Type> genericParamTypes = new List<Type>();
-                    foreach (var type in methodTypes)
+                    // Thread-safe creation
+                    lock (typeCache)
                     {
-                        if (type.IsByRef)
-                            genericParamTypes.Add(type.GetElementType());
-                        else if (type.IsPointer)
-                            genericParamTypes.Add(typeof(IntPtr));
-                        else
-                            genericParamTypes.Add(type);
-                    }
-
-                    string invokerTypeName = $"{typeof(Invoker).FullName}+Invoker{(method.IsStatic ? "Static" : "")}{(returnType != typeof(void) ? "Ret" : "NoRet")}{parameterTypes.Length}{(genericParamTypes.Count > 0 ? "`" + genericParamTypes.Count : "")}";
-                    Type invokerType = Type.GetType(invokerTypeName);
-                    if (invokerType != null)
-                    {
-                        if (genericParamTypes.Count != 0)
-                            invokerType = invokerType.MakeGenericType(genericParamTypes.ToArray());
-                        invokeDelegate = invokerType.GetMethod(nameof(Invoker.InvokerStaticNoRet0.MarshalAndInvoke), BindingFlags.Static | BindingFlags.NonPublic).CreateDelegate<Invoker.MarshalAndInvokeDelegate>();
-                        delegInvoke = invokerType.GetMethod(nameof(Invoker.InvokerStaticNoRet0.CreateDelegate), BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { method });
+                        if (invokeDelegate == null)
+                        {
+                            TryCreateDelegate();
+                        }
                     }
                 }
-
                 outDeleg = invokeDelegate;
                 outDelegInvoke = delegInvoke;
                 return outDeleg != null;
+            }
+
+            private void TryCreateDelegate()
+            {
+                var methodTypes = new List<Type>();
+                if (!method.IsStatic)
+                    methodTypes.Add(method.DeclaringType);
+                if (returnType != typeof(void))
+                    methodTypes.Add(returnType);
+                methodTypes.AddRange(parameterTypes);
+
+                var genericParamTypes = new List<Type>();
+                foreach (var type in methodTypes)
+                {
+                    if (type.IsByRef)
+                        genericParamTypes.Add(type.GetElementType());
+                    else if (type.IsPointer)
+                        genericParamTypes.Add(typeof(IntPtr));
+                    else
+                        genericParamTypes.Add(type);
+                }
+
+                string invokerTypeName = $"{typeof(Invoker).FullName}+Invoker{(method.IsStatic ? "Static" : "")}{(returnType != typeof(void) ? "Ret" : "NoRet")}{parameterTypes.Length}{(genericParamTypes.Count > 0 ? "`" + genericParamTypes.Count : "")}";
+                Type invokerType = Type.GetType(invokerTypeName);
+                if (invokerType != null)
+                {
+                    if (genericParamTypes.Count != 0)
+                        invokerType = invokerType.MakeGenericType(genericParamTypes.ToArray());
+                    delegInvoke = invokerType.GetMethod(nameof(Invoker.InvokerStaticNoRet0.CreateDelegate), BindingFlags.Static | BindingFlags.NonPublic).Invoke(null, new object[] { method });
+                    invokeDelegate = invokerType.GetMethod(nameof(Invoker.InvokerStaticNoRet0.MarshalAndInvoke), BindingFlags.Static | BindingFlags.NonPublic).CreateDelegate<Invoker.MarshalAndInvokeDelegate>();
+                }
             }
 #endif
         }
@@ -1451,7 +1468,6 @@ namespace FlaxEngine.Interop
                         ref IntPtr fieldRef = ref FieldHelper.GetReferenceTypeFieldReference<IntPtr>(unmanagedPtrFieldOffset, ref obj);
                         fieldRef = unmanagedPtr;
                     }
-
                     if (idPtr != IntPtr.Zero)
                     {
                         ref Guid nativeId = ref Unsafe.AsRef<Guid>(idPtr.ToPointer());
@@ -1459,12 +1475,10 @@ namespace FlaxEngine.Interop
                         fieldRef = nativeId;
                     }
                 }
-
                 if (ctor != null)
                     ctor.Invoke(obj, null);
                 else
-                    Debug.LogException(new Exception($"Missing empty constructor in type '{wrappedType}'."));
-
+                    throw new NativeInteropException($"Missing empty constructor in type '{wrappedType}'.");
                 return obj;
             }
 #endif
@@ -1580,7 +1594,7 @@ namespace FlaxEngine.Interop
             private static IntPtr PinValue<T>(T value) where T : struct
             {
                 // Store the converted value in unmanaged memory so it will not be relocated by the garbage collector.
-                int size = Unsafe.SizeOf<T>();
+                int size = TypeHelpers<T>.MarshalSize;
                 uint index = Interlocked.Increment(ref pinnedAllocationsPointer) % (uint)pinnedAllocations.Length;
                 ref (IntPtr ptr, int size) alloc = ref pinnedAllocations[index];
                 if (alloc.size < size)
@@ -1665,6 +1679,8 @@ namespace FlaxEngine.Interop
         /// </summary>
         internal static ManagedHandle GetTypeManagedHandle(Type type)
         {
+            if (type.IsInterface && type.IsGenericType)
+                type = type.GetGenericTypeDefinition(); // Generic type to use type definition handle
             if (managedTypes.TryGetValue(type, out (TypeHolder typeHolder, ManagedHandle handle) tuple))
                 return tuple.handle;
 #if FLAX_EDITOR
@@ -1711,25 +1727,36 @@ namespace FlaxEngine.Interop
             return tuple;
         }
 
-        internal static int GetTypeSize(Type type)
+        internal static class TypeHelpers<T>
         {
-            if (!_typeSizeCache.TryGetValue(type, out var size))
+            public static readonly int MarshalSize;
+            static TypeHelpers()
             {
+                Type type = typeof(T);
                 try
                 {
                     var marshalType = type;
                     if (type.IsEnum)
                         marshalType = type.GetEnumUnderlyingType();
-                    size = Marshal.SizeOf(marshalType);
+                    MarshalSize = Marshal.SizeOf(marshalType);
                 }
                 catch
                 {
                     // Workaround the issue where structure defined within generic type instance (eg. MyType<int>.MyStruct) fails to get size
                     // https://github.com/dotnet/runtime/issues/46426
-                    var obj = Activator.CreateInstance(type);
-                    size = Marshal.SizeOf(obj);
+                    var obj = RuntimeHelpers.GetUninitializedObject(type);
+                    MarshalSize = Marshal.SizeOf(obj);
                 }
-                _typeSizeCache.Add(type, size);
+            }
+        }
+
+        internal static int GetTypeSize(Type type)
+        {
+            if (!_typeSizeCache.TryGetValue(type, out int size))
+            {
+                var marshalSizeField = typeof(TypeHelpers<>).MakeGenericType(type).GetField(nameof(TypeHelpers<int>.MarshalSize), BindingFlags.Static | BindingFlags.Public);
+                size = (int)marshalSizeField.GetValue(null);
+                _typeSizeCache.AddOrUpdate(type, size, (t, v) => size);
             }
             return size;
         }

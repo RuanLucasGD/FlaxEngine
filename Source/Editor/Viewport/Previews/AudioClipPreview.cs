@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Threading.Tasks;
@@ -184,6 +184,7 @@ namespace FlaxEditor.Viewport.Previews
                     break;
                 default: throw new ArgumentOutOfRangeException();
                 }
+                samplesPerIndex = Math.Max(samplesPerIndex, info.NumChannels);
                 const uint maxSamplesPerIndex = 64;
                 uint samplesPerIndexDiff = Math.Max(1, samplesPerIndex / Math.Min(samplesPerIndex, maxSamplesPerIndex));
 

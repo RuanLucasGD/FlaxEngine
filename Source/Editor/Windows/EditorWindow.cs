@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using FlaxEditor.Content;
@@ -38,6 +38,7 @@ namespace FlaxEditor.Windows
         protected EditorWindow(Editor editor, bool hideOnClose, ScrollBars scrollBars)
         : base(editor.UI.MasterPanel, hideOnClose, scrollBars)
         {
+            AutoFocus = true;
             Editor = editor;
 
             InputActions.Add(options => options.ContentFinder, () =>
@@ -226,6 +227,8 @@ namespace FlaxEditor.Windows
         /// <inheritdoc />
         public override void OnDestroy()
         {
+            if (IsDisposing)
+                return;
             OnExit();
 
             // Unregister

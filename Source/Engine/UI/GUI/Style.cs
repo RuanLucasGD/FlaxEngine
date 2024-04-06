@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 namespace FlaxEngine.GUI
 {
@@ -169,6 +169,18 @@ namespace FlaxEngine.GUI
         /// </summary>
         [EditorOrder(200)]
         public Color ProgressNormal;
+
+        /// <summary>
+        /// The selection and drag drop highlights colors.
+        /// </summary>
+        [EditorOrder(205)]
+        public Color Selection;
+
+        /// <summary>
+        /// The selection and drag drop highlights border colors.
+        /// </summary>
+        [EditorOrder(206)]
+        public Color SelectionBorder;
 
         /// <summary>
         /// The status bar style

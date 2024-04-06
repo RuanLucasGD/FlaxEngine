@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.Collections.Generic;
 using FlaxEditor.CustomEditors.GUI;
@@ -22,7 +22,8 @@ namespace FlaxEditor.CustomEditors.Editors
         /// <inheritdoc />
         public override void Initialize(LayoutElementsContainer layout)
         {
-            LinkedLabel.SetupContextMenu += OnSetupContextMenu;
+            if (LinkedLabel != null)
+                LinkedLabel.SetupContextMenu += OnSetupContextMenu;
             var comboBoxElement = layout.ComboBox();
             _comboBox = comboBoxElement.ComboBox;
             var names = new List<string>();

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using FlaxEngine;
@@ -201,8 +201,9 @@ namespace FlaxEditor.GUI.Input
                 if (_isSliding)
                 {
                     // Draw overlay
-                    // TODO: render nicer overlay with some glow from the borders (inside)
-                    Render2D.FillRectangle(new Rectangle(Float2.Zero, Size), Color.Orange * 0.3f);
+                    var bounds = new Rectangle(Float2.Zero, Size);
+                    Render2D.FillRectangle(bounds, style.Selection);
+                    Render2D.DrawRectangle(bounds, style.SelectionBorder);
                 }
             }
         }

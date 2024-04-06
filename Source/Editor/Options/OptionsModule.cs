@@ -1,8 +1,10 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using FlaxEditor.Content.Settings;
 using FlaxEditor.Modules;
 using FlaxEngine;
 using FlaxEngine.GUI;
@@ -198,6 +200,27 @@ namespace FlaxEditor.Options
 
             EditorAssets.Cache.OnEditorOptionsChanged(Options);
 
+            // Units formatting options
+            bool useUnitsFormatting = Options.Interface.ValueFormatting != InterfaceOptions.ValueFormattingType.None;
+            bool automaticUnitsFormatting = Options.Interface.ValueFormatting == InterfaceOptions.ValueFormattingType.AutoUnit;
+            bool separateValueAndUnit = Options.Interface.SeparateValueAndUnit;
+            if (useUnitsFormatting != Utilities.Units.UseUnitsFormatting ||
+                automaticUnitsFormatting != Utilities.Units.AutomaticUnitsFormatting ||
+                separateValueAndUnit != Utilities.Units.SeparateValueAndUnit)
+            {
+                Utilities.Units.UseUnitsFormatting = useUnitsFormatting;
+                Utilities.Units.AutomaticUnitsFormatting = automaticUnitsFormatting;
+                Utilities.Units.SeparateValueAndUnit = separateValueAndUnit;
+
+                // Refresh UI in property panels
+                Editor.Windows.PropertiesWin?.Presenter.BuildLayoutOnUpdate();
+                foreach (var window in Editor.Windows.Windows)
+                {
+                    if (window is Windows.Assets.PrefabWindow prefabWindow)
+                        prefabWindow.Presenter.BuildLayoutOnUpdate();
+                }
+            }
+
             // Send event
             OptionsChanged?.Invoke(Options);
         }
@@ -210,6 +233,14 @@ namespace FlaxEditor.Options
             string styleName = themeOptions.SelectedStyle;
             if (styleName != ThemeOptions.DefaultName && styleName != ThemeOptions.LightDefault && themeOptions.Styles.TryGetValue(styleName, out var style) && style != null)
             {
+                // Setup defaults for newly added components that might be missing
+                if (style.Selection == Color.Transparent && style.SelectionBorder == Color.Transparent)
+                {
+                    // [Deprecated on 6.03.2024, expires on 6.03.2026]
+                    style.Selection = Color.Orange * 0.4f;
+                    style.SelectionBorder = Color.Orange;
+                }
+
                 Style.Current = style;
             }
             else
@@ -217,12 +248,18 @@ namespace FlaxEditor.Options
                 if (styleName == ThemeOptions.LightDefault)
                 {
                     Style.Current = CreateLightStyle();
-                } 
+                }
                 else
                 {
                     Style.Current = CreateDefaultStyle();
                 }
             }
+
+            // Set fallback fonts
+            var fallbackFonts = Options.Interface.FallbackFonts;
+            if (fallbackFonts == null || fallbackFonts.Length == 0 || fallbackFonts.All(x => x == null))
+                fallbackFonts = GameSettings.Load<GraphicsSettings>().FallbackFonts;
+            Font.FallbackFonts = fallbackFonts;
         }
 
         /// <summary>
@@ -250,6 +287,8 @@ namespace FlaxEditor.Options
                 TextBoxBackgroundSelected = Color.FromBgra(0xFF3F3F46),
                 CollectionBackgroundColor = Color.FromBgra(0x14CCCCCC),
                 ProgressNormal = Color.FromBgra(0xFF0ad328),
+                Selection = Color.Orange * 0.4f,
+                SelectionBorder = Color.Orange,
 
                 Statusbar = new Style.StatusbarStyle
                 {
@@ -310,6 +349,8 @@ namespace FlaxEditor.Options
                 TextBoxBackgroundSelected = new Color(0.73f, 0.73f, 0.80f, 1f),
                 CollectionBackgroundColor = new Color(0.85f, 0.85f, 0.88f, 1f),
                 ProgressNormal = new Color(0.03f, 0.65f, 0.12f, 1f),
+                Selection = Color.Orange * 0.4f,
+                SelectionBorder = Color.Orange,
 
                 // Fonts
                 FontTitle = options.Interface.TitleFont.GetFont(),

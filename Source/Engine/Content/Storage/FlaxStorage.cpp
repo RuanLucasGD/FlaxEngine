@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "FlaxStorage.h"
 #include "FlaxFile.h"
@@ -20,6 +20,30 @@
 #endif
 #include <ThirdParty/LZ4/lz4.h>
 
+int32 AssetHeader::GetChunksCount() const
+{
+    int32 result = 0;
+    for (int32 i = 0; i < ASSET_FILE_DATA_CHUNKS; i++)
+    {
+        if (Chunks[i] != nullptr)
+            result++;
+    }
+    return result;
+}
+
+void AssetHeader::DeleteChunks()
+{
+    for (int32 i = 0; i < ASSET_FILE_DATA_CHUNKS; i++)
+    {
+        SAFE_DELETE(Chunks[i]);
+    }
+}
+
+void AssetHeader::UnlinkChunks()
+{
+    Platform::MemoryClear(Chunks, sizeof(Chunks));
+}
+
 String AssetHeader::ToString() const
 {
     return String::Format(TEXT("ID: {0}, TypeName: {1}, Chunks Count: {2}"), ID, TypeName, GetChunksCount());
@@ -27,7 +51,7 @@ String AssetHeader::ToString() const
 
 void FlaxChunk::RegisterUsage()
 {
-    Platform::AtomicStore(&LastAccessTime, DateTime::NowUTC().Ticks);
+    LastAccessTime = Platform::GetTimeSeconds();
 }
 
 const int32 FlaxStorage::MagicCode = 1180124739;
@@ -211,7 +235,13 @@ FlaxStorage::~FlaxStorage()
 
 #if USE_EDITOR
     // Ensure to close any outstanding file handles to prevent file locking in case it failed to load
-    _file.DeleteAll();
+    Array<FileReadStream*> streams;
+    _file.GetValues(streams);
+    for (FileReadStream* stream : streams)
+    {
+        if (stream)
+            Delete(stream);
+    }
 #endif
 }
 
@@ -229,7 +259,9 @@ uint32 FlaxStorage::GetRefCount() const
 
 bool FlaxStorage::ShouldDispose() const
 {
-    return Platform::AtomicRead((int64*)&_refCount) == 0 && Platform::AtomicRead((int64*)&_chunksLock) == 0 && DateTime::NowUTC() - _lastRefLostTime >= TimeSpan::FromMilliseconds(500);
+    return Platform::AtomicRead((int64*)&_refCount) == 0 &&
+            Platform::AtomicRead((int64*)&_chunksLock) == 0 &&
+            Platform::GetTimeSeconds() - _lastRefLostTime >= 0.5; // TTL in seconds
 }
 
 uint32 FlaxStorage::GetMemoryUsage() const
@@ -562,6 +594,7 @@ bool FlaxStorage::Reload()
 {
     if (!IsLoaded())
         return false;
+    PROFILE_CPU();
 
     OnReloading(this);
 
@@ -728,7 +761,11 @@ bool FlaxStorage::ChangeAssetID(Entry& e, const Guid& newId)
     }
 
     // Close file
-    CloseFileHandles();
+    if (CloseFileHandles())
+    {
+        LOG(Error, "Cannot close file access for '{}'", _path);
+        return true;
+    }
 
     // Change ID
     // TODO: here we could extend it and load assets from the storage and call asset ID change event to change references
@@ -776,6 +813,8 @@ FlaxChunk* FlaxStorage::AllocateChunk()
 
 bool FlaxStorage::Create(const StringView& path, const AssetInitData* data, int32 dataCount, bool silentMode, const CustomData* customData)
 {
+    PROFILE_CPU();
+    ZoneText(*path, path.Length());
     LOG(Info, "Creating package at \'{0}\'. Silent Mode: {1}", path, silentMode);
 
     // Prepare to have access to the file
@@ -956,6 +995,7 @@ bool FlaxStorage::Create(WriteStream* stream, const AssetInitData* data, int32 d
         // Asset Dependencies
         stream->WriteInt32(header.Dependencies.Count());
         stream->WriteBytes(header.Dependencies.Get(), header.Dependencies.Count() * sizeof(Pair<Guid, DateTime>));
+        static_assert(sizeof(Pair<Guid, DateTime>) == sizeof(Guid) + sizeof(DateTime), "Invalid data size.");
     }
 
 #if ASSETS_LOADING_EXTRA_VERIFICATION
@@ -1256,7 +1296,6 @@ bool FlaxStorage::LoadAssetHeader(const Entry& e, AssetInitData& data)
     }
 
 #if ASSETS_LOADING_EXTRA_VERIFICATION
-
     // Validate loaded header (asset ID and type ID must be the same)
     if (e.ID != data.Header.ID)
     {
@@ -1266,7 +1305,6 @@ bool FlaxStorage::LoadAssetHeader(const Entry& e, AssetInitData& data)
     {
         LOG(Error, "Loading asset header data mismatch! Expected Type Name: {0}, loaded header: {1}.\nSource: {2}", e.TypeName, data.Header.ToString(), ToString());
     }
-
 #endif
 
     return false;
@@ -1296,8 +1334,10 @@ FileReadStream* FlaxStorage::OpenFile()
     return stream;
 }
 
-void FlaxStorage::CloseFileHandles()
+bool FlaxStorage::CloseFileHandles()
 {
+    PROFILE_CPU();
+
     // Note: this is usually called by the content manager when this file is not used or on exit
     // In those situations all the async tasks using this storage should be cancelled externally
 
@@ -1323,10 +1363,19 @@ void FlaxStorage::CloseFileHandles()
     waitTime = 100;
     while (Platform::AtomicRead(&_chunksLock) != 0 && waitTime-- > 0)
         Platform::Sleep(1);
-    ASSERT(_chunksLock == 0);
+    if (Platform::AtomicRead(&_chunksLock) != 0)
+        return true; // Failed, someone is still accessing the file
 
     // Close file handles (from all threads)
-    _file.DeleteAll();
+    Array<FileReadStream*> streams;
+    _file.GetValues(streams);
+    for (FileReadStream* stream : streams)
+    {
+        if (stream)
+            Delete(stream);
+    }
+    _file.Clear();
+    return false;
 }
 
 void FlaxStorage::Dispose()
@@ -1335,7 +1384,10 @@ void FlaxStorage::Dispose()
         return;
 
     // Close file
-    CloseFileHandles();
+    if (CloseFileHandles())
+    {
+        LOG(Error, "Cannot close file access for '{}'", _path);
+    }
 
     // Release data
     _chunks.ClearDelete();
@@ -1348,12 +1400,13 @@ void FlaxStorage::Tick()
     if (Platform::AtomicRead(&_chunksLock) != 0)
         return;
 
-    const auto now = DateTime::NowUTC();
+    const double now = Platform::GetTimeSeconds();
     bool wasAnyUsed = false;
+    const float unusedDataChunksLifetime = ContentStorageManager::UnusedDataChunksLifetime.GetTotalSeconds();
     for (int32 i = 0; i < _chunks.Count(); i++)
     {
-        auto chunk = _chunks[i];
-        const bool wasUsed = (now - DateTime(Platform::AtomicRead(&chunk->LastAccessTime))) < ContentStorageManager::UnusedDataChunksLifetime;
+        auto chunk = _chunks.Get()[i];
+        const bool wasUsed = (now - chunk->LastAccessTime) < unusedDataChunksLifetime;
         if (!wasUsed && chunk->IsLoaded())
         {
             chunk->Unload();

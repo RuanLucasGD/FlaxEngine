@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "ViewportIconsRenderer.h"
 #include "Engine/Core/Types/Variant.h"
@@ -187,6 +187,8 @@ void ViewportIconsRendererService::DrawIcons(RenderContext& renderContext, Scene
 
 void ViewportIconsRendererService::DrawIcons(RenderContext& renderContext, Actor* actor, Mesh::DrawInfo& draw)
 {
+    if (!actor || !actor->IsActiveInHierarchy())
+        return;
     auto& view = renderContext.View;
     const BoundingFrustum frustum = view.Frustum;
     Matrix m1, m2, world;
@@ -208,8 +210,7 @@ void ViewportIconsRendererService::DrawIcons(RenderContext& renderContext, Actor
         draw.DrawState = &drawState;
         draw.Deformation = nullptr;
 
-        // Support custom icons through types, but not onces that were added through actors,
-        // since they cant register while in prefab view anyway
+        // Support custom icons through types, but not ones that were added through actors, since they cant register while in prefab view anyway
         if (ActorTypeToTexture.TryGet(actor->GetTypeHandle(), texture))
         {
             // Use custom texture

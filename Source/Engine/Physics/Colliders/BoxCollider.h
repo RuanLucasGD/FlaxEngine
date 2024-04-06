@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@
 API_CLASS(Attributes="ActorContextMenu(\"New/Physics/Colliders/Box Collider\"), ActorToolbox(\"Physics\")")
 class FLAXENGINE_API BoxCollider : public Collider
 {
+    API_AUTO_SERIALIZATION();
     DECLARE_SCENE_OBJECT(BoxCollider);
 private:
     Float3 _size;
@@ -22,7 +23,7 @@ public:
     /// Gets the size of the box, measured in the object's local space.
     /// </summary>
     /// <remarks>The box size will be scaled by the actor's world scale. </remarks>
-    API_PROPERTY(Attributes="EditorOrder(100), DefaultValue(typeof(Float3), \"100,100,100\"), EditorDisplay(\"Collider\")")
+    API_PROPERTY(Attributes="EditorOrder(100), DefaultValue(typeof(Float3), \"100,100,100\"), EditorDisplay(\"Collider\"), ValueCategory(Utils.ValueCategory.Distance)")
     FORCE_INLINE Float3 GetSize() const
     {
         return _size;
@@ -42,6 +43,11 @@ public:
         return _bounds;
     }
 
+    /// <summary>
+    /// Resizes the collider based on the bounds of it's parent to contain it whole (including any siblings).
+    /// </summary>
+    API_FUNCTION() void AutoResize(bool globalOrientation);
+
 public:
     // [Collider]
 #if USE_EDITOR
@@ -49,8 +55,6 @@ public:
     void OnDebugDrawSelected() override;
 #endif
     bool IntersectsItself(const Ray& ray, Real& distance, Vector3& normal) override;
-    void Serialize(SerializeStream& stream, const void* otherObj) override;
-    void Deserialize(DeserializeStream& stream, ISerializeModifier* modifier) override;
 
 protected:
     // [Collider]

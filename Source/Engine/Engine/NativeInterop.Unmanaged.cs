@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_NETCORE
 using System;
@@ -525,11 +525,11 @@ namespace FlaxEngine.Interop
         internal static void GetMethodParameterTypes(ManagedHandle methodHandle, IntPtr* typeHandles)
         {
             MethodHolder methodHolder = Unsafe.As<MethodHolder>(methodHandle.Target);
-            Type returnType = methodHolder.returnType;
-            IntPtr arr = (IntPtr)NativeAlloc(methodHolder.parameterTypes.Length, IntPtr.Size);
-            for (int i = 0; i < methodHolder.parameterTypes.Length; i++)
+            Type[] parameterTypes = methodHolder.parameterTypes;
+            IntPtr arr = (IntPtr)NativeAlloc(parameterTypes.Length, IntPtr.Size);
+            for (int i = 0; i < parameterTypes.Length; i++)
             {
-                ManagedHandle typeHandle = GetTypeManagedHandle(methodHolder.parameterTypes[i]);
+                ManagedHandle typeHandle = GetTypeManagedHandle(parameterTypes[i]);
                 Unsafe.Write<ManagedHandle>(IntPtr.Add(new IntPtr(arr), IntPtr.Size * i).ToPointer(), typeHandle);
             }
             *typeHandles = arr;
@@ -551,8 +551,16 @@ namespace FlaxEngine.Interop
         internal static ManagedHandle NewObject(ManagedHandle typeHandle)
         {
             TypeHolder typeHolder = Unsafe.As<TypeHolder>(typeHandle.Target);
-            object value = typeHolder.CreateObject();
-            return ManagedHandle.Alloc(value);
+            try
+            {
+                object value = typeHolder.CreateObject();
+                return ManagedHandle.Alloc(value);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogException(ex);
+            }
+            return new ManagedHandle();
         }
 
         [UnmanagedCallersOnly]
@@ -1269,6 +1277,9 @@ namespace FlaxEngine.Interop
                 monoType = MTypes.String;
                 break;
             case Type _ when type == typeof(IntPtr):
+                monoType = MTypes.Ptr;
+                break;
+            case Type _ when type.IsPointer:
                 monoType = MTypes.Ptr;
                 break;
             case Type _ when type.IsEnum:

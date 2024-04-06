@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_LARGE_WORLDS
 using Real = System.Double;
@@ -11,7 +11,6 @@ using System.Globalization;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -20,6 +19,7 @@ using FlaxEditor.GUI.Input;
 using FlaxEditor.GUI.Tree;
 using FlaxEditor.SceneGraph;
 using FlaxEngine;
+using FlaxEngine.Json;
 using FlaxEngine.GUI;
 using FlaxEngine.Utilities;
 using FlaxEditor.Windows;
@@ -204,6 +204,22 @@ namespace FlaxEditor.Utilities
         }
 
         /// <summary>
+        /// Clones the value. handles non-value types (such as arrays) that need deep value cloning.
+        /// </summary>
+        /// <param name="value">The source value to clone.</param>
+        /// <returns>The duplicated value.</returns>
+        internal static object CloneValue(object value)
+        {
+            // For objects (eg. arrays) we need to clone them to prevent editing default/reference value within editor
+            if (value != null && (!value.GetType().IsValueType || !value.GetType().IsClass))
+            {
+                var json = JsonSerializer.Serialize(value);
+                value = JsonSerializer.Deserialize(json, value.GetType());
+            }
+            return value;
+        }
+
+        /// <summary>
         /// The colors for the keyframes used by the curve editor.
         /// </summary>
         internal static readonly Color[] CurveKeyframesColors =
@@ -226,6 +242,63 @@ namespace FlaxEditor.Utilities
             1000, 5000, 10000, 50000, 100000,
             500000, 1000000, 5000000, 10000000, 100000000
         };
+
+        internal delegate void DrawCurveTick(float tick, float strength);
+
+        internal static Int2 DrawCurveTicks(DrawCurveTick drawTick, float[] tickSteps, ref float[] tickStrengths, float min, float max, float pixelRange, float minDistanceBetweenTicks = 20, float maxDistanceBetweenTicks = 60)
+        {
+            if (tickStrengths == null || tickStrengths.Length != tickSteps.Length)
+                tickStrengths = new float[tickSteps.Length];
+
+            // Find the strength for each modulo number tick marker
+            var pixelsInRange = pixelRange / (max - min);
+            var smallestTick = 0;
+            var biggestTick = tickSteps.Length - 1;
+            for (int i = tickSteps.Length - 1; i >= 0; i--)
+            {
+                // Calculate how far apart these modulo tick steps are spaced
+                float tickSpacing = tickSteps[i] * pixelsInRange;
+
+                // Calculate the strength of the tick markers based on the spacing
+                tickStrengths[i] = Mathf.Saturate((tickSpacing - minDistanceBetweenTicks) / (maxDistanceBetweenTicks - minDistanceBetweenTicks));
+
+                // Beyond threshold the ticks don't get any bigger or fatter
+                if (tickStrengths[i] >= 1)
+                    biggestTick = i;
+
+                // Do not show small tick markers
+                if (tickSpacing <= minDistanceBetweenTicks)
+                {
+                    smallestTick = i;
+                    break;
+                }
+            }
+            var tickLevels = biggestTick - smallestTick + 1;
+
+            // Draw all tick levels
+            for (int level = 0; level < tickLevels; level++)
+            {
+                float strength = tickStrengths[smallestTick + level];
+                if (strength <= Mathf.Epsilon)
+                    continue;
+
+                // Draw all ticks
+                int l = Mathf.Clamp(smallestTick + level, 0, tickSteps.Length - 1);
+                var lStep = tickSteps[l];
+                var lNextStep = tickSteps[l + 1];
+                int startTick = Mathf.FloorToInt(min / lStep);
+                int endTick = Mathf.CeilToInt(max / lStep);
+                for (int i = startTick; i <= endTick; i++)
+                {
+                    if (l < biggestTick && (i % Mathf.RoundToInt(lNextStep / lStep) == 0))
+                        continue;
+                    var tick = i * lStep;
+                    drawTick(tick, strength);
+                }
+            }
+
+            return new Int2(smallestTick, biggestTick);
+        }
 
         /// <summary>
         /// Determines whether the specified path string contains any invalid character.
@@ -1171,6 +1244,71 @@ namespace FlaxEditor.Utilities
             return StringUtils.GetPathWithoutExtension(path);
         }
 
+        private static string InternalFormat(double value, string format, FlaxEngine.Utils.ValueCategory category)
+        {
+            switch (category)
+            {
+            case FlaxEngine.Utils.ValueCategory.Distance:
+                if (!Units.AutomaticUnitsFormatting)
+                    return (value / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("m");
+                var absValue = Mathf.Abs(value);
+                // in case a unit != cm this would be (value / Meters2Units * 100)
+                if (absValue < Units.Meters2Units)
+                    return value.ToString(format, CultureInfo.InvariantCulture) + Units.Unit("cm");
+                if (absValue < Units.Meters2Units * 1000)
+                    return (value / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("m");
+                return (value / 1000 / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("km");
+            case FlaxEngine.Utils.ValueCategory.Angle: return value.ToString(format, CultureInfo.InvariantCulture) + "°";
+            case FlaxEngine.Utils.ValueCategory.Time: return value.ToString(format, CultureInfo.InvariantCulture) + Units.Unit("s");
+            // some fonts have a symbol for that: "\u33A7"
+            case FlaxEngine.Utils.ValueCategory.Speed: return (value / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("m/s");
+            case FlaxEngine.Utils.ValueCategory.Acceleration: return (value / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("m/s²");
+            case FlaxEngine.Utils.ValueCategory.Area: return (value / Units.Meters2Units / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("m²");
+            case FlaxEngine.Utils.ValueCategory.Volume: return (value / Units.Meters2Units / Units.Meters2Units / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("m³");
+            case FlaxEngine.Utils.ValueCategory.Mass: return value.ToString(format, CultureInfo.InvariantCulture) + Units.Unit("kg");
+            case FlaxEngine.Utils.ValueCategory.Force: return (value / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("N");
+            case FlaxEngine.Utils.ValueCategory.Torque: return (value / Units.Meters2Units / Units.Meters2Units).ToString(format, CultureInfo.InvariantCulture) + Units.Unit("Nm");
+            case FlaxEngine.Utils.ValueCategory.None:
+            default: return FormatFloat(value);
+            }
+        }
+
+        /// <summary>
+        /// Format a float value either as-is, with a distance unit or with a degree sign.
+        /// </summary>
+        /// <param name="value">The value to format.</param>
+        /// <param name="category">The value type: none means just a number, distance will format in cm/m/km, angle with an appended degree sign.</param>
+        /// <returns>The formatted string.</returns>
+        public static string FormatFloat(float value, FlaxEngine.Utils.ValueCategory category)
+        {
+            if (float.IsPositiveInfinity(value) || value == float.MaxValue)
+                return "Infinity";
+            if (float.IsNegativeInfinity(value) || value == float.MinValue)
+                return "-Infinity";
+            if (!Units.UseUnitsFormatting || category == FlaxEngine.Utils.ValueCategory.None)
+                return FormatFloat(value);
+            const string format = "G7";
+            return InternalFormat(value, format, category);
+        }
+
+        /// <summary>
+        /// Format a double value either as-is, with a distance unit or with a degree sign
+        /// </summary>
+        /// <param name="value">The value to format.</param>
+        /// <param name="category">The value type: none means just a number, distance will format in cm/m/km, angle with an appended degree sign.</param>
+        /// <returns>The formatted string.</returns>
+        public static string FormatFloat(double value, FlaxEngine.Utils.ValueCategory category)
+        {
+            if (double.IsPositiveInfinity(value) || value == double.MaxValue)
+                return "Infinity";
+            if (double.IsNegativeInfinity(value) || value == double.MinValue)
+                return "-Infinity";
+            if (!Units.UseUnitsFormatting || category == FlaxEngine.Utils.ValueCategory.None)
+                return FormatFloat(value);
+            const string format = "G15";
+            return InternalFormat(value, format, category);
+        }
+
         /// <summary>
         /// Formats the floating point value (double precision) into the readable text representation.
         /// </summary>
@@ -1182,7 +1320,7 @@ namespace FlaxEditor.Utilities
                 return "Infinity";
             if (float.IsNegativeInfinity(value) || value == float.MinValue)
                 return "-Infinity";
-            string str = value.ToString("r", CultureInfo.InvariantCulture);
+            string str = value.ToString("R", CultureInfo.InvariantCulture);
             return FormatFloat(str, value < 0);
         }
 
@@ -1197,7 +1335,7 @@ namespace FlaxEditor.Utilities
                 return "Infinity";
             if (double.IsNegativeInfinity(value) || value == double.MinValue)
                 return "-Infinity";
-            string str = value.ToString("r", CultureInfo.InvariantCulture);
+            string str = value.ToString("R", CultureInfo.InvariantCulture);
             return FormatFloat(str, value < 0);
         }
 
@@ -1289,6 +1427,7 @@ namespace FlaxEditor.Utilities
             inputActions.Add(options => options.Paste, Editor.Instance.SceneEditing.Paste);
             inputActions.Add(options => options.Duplicate, Editor.Instance.SceneEditing.Duplicate);
             inputActions.Add(options => options.SelectAll, Editor.Instance.SceneEditing.SelectAllScenes);
+            inputActions.Add(options => options.DeselectAll, Editor.Instance.SceneEditing.DeselectAllScenes);
             inputActions.Add(options => options.Delete, Editor.Instance.SceneEditing.Delete);
             inputActions.Add(options => options.Search, () => Editor.Instance.Windows.SceneWin.Search());
             inputActions.Add(options => options.MoveActorToViewport, Editor.Instance.UI.MoveActorToViewport);
@@ -1310,8 +1449,17 @@ namespace FlaxEditor.Utilities
             inputActions.Add(options => options.BuildSDF, Editor.Instance.BuildAllMeshesSDF);
             inputActions.Add(options => options.TakeScreenshot, Editor.Instance.Windows.TakeScreenshot);
             inputActions.Add(options => options.ProfilerWindow, () => Editor.Instance.Windows.ProfilerWin.FocusOrShow());
-            inputActions.Add(options => options.ProfilerStartStop, () => { Editor.Instance.Windows.ProfilerWin.LiveRecording = !Editor.Instance.Windows.ProfilerWin.LiveRecording; Editor.Instance.UI.AddStatusMessage($"Profiling {(Editor.Instance.Windows.ProfilerWin.LiveRecording ? "started" : "stopped")}."); });
-            inputActions.Add(options => options.ProfilerClear, () => { Editor.Instance.Windows.ProfilerWin.Clear(); Editor.Instance.UI.AddStatusMessage($"Profiling results cleared."); });
+            inputActions.Add(options => options.ProfilerStartStop, () =>
+            {
+                bool recording = !Editor.Instance.Windows.ProfilerWin.LiveRecording;
+                Editor.Instance.Windows.ProfilerWin.LiveRecording = recording;
+                Editor.Instance.UI.AddStatusMessage($"Profiling {(recording ? "started" : "stopped")}.");
+            });
+            inputActions.Add(options => options.ProfilerClear, () =>
+            {
+                Editor.Instance.Windows.ProfilerWin.Clear();
+                Editor.Instance.UI.AddStatusMessage($"Profiling results cleared.");
+            });
             inputActions.Add(options => options.SaveScenes, () => Editor.Instance.Scene.SaveScenes());
             inputActions.Add(options => options.CloseScenes, () => Editor.Instance.Scene.CloseAllScenes());
             inputActions.Add(options => options.OpenScriptsProject, () => Editor.Instance.CodeEditing.OpenSolution());

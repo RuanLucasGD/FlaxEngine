@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "BehaviorTreeNodes.h"
 #include "Behavior.h"
@@ -474,8 +474,8 @@ BehaviorUpdateResult BehaviorTreeMoveToNode::Update(const BehaviorUpdateContext&
             state->NavAgentRadius = navMesh->Properties.Agent.Radius;
 
             // Place start and end on navmesh
-            navMesh->ProjectPoint(state->Path.First(), state->Path.First());
-            navMesh->ProjectPoint(state->Path.Last(), state->Path.Last());
+            navMesh->FindClosestPoint(state->Path.First(), state->Path.First());
+            navMesh->FindClosestPoint(state->Path.Last(), state->Path.Last());
 
             // Calculate offset between path and the agent (aka feet offset)
             state->AgentOffset = state->Path.First() - agentLocation;
@@ -624,8 +624,10 @@ void BehaviorTreeLoopDecorator::PostUpdate(const BehaviorUpdateContext& context,
     if (result == BehaviorUpdateResult::Success)
     {
         auto state = GetState<State>(context.Memory);
-        state->Loops--;
-        if (state->Loops > 0)
+        if (!InfiniteLoop)
+            state->Loops--;
+
+        if (state->Loops > 0 || InfiniteLoop)
         {
             // Keep running in a loop but reset node's state (preserve self state)
             result = BehaviorUpdateResult::Running;
@@ -702,6 +704,14 @@ bool BehaviorTreeKnowledgeConditionalDecorator::CanUpdate(const BehaviorUpdateCo
 bool BehaviorTreeKnowledgeValuesConditionalDecorator::CanUpdate(const BehaviorUpdateContext& context)
 {
     return BehaviorKnowledge::CompareValues((float)ValueA.Get(context.Knowledge), (float)ValueB.Get(context.Knowledge), Comparison);
+}
+
+bool BehaviorTreeKnowledgeBooleanDecorator::CanUpdate(const BehaviorUpdateContext& context)
+{
+    Variant value = Value.Get(context.Knowledge);
+    bool result = (bool)value;
+    result ^= Invert;
+    return result;
 }
 
 bool BehaviorTreeHasTagDecorator::CanUpdate(const BehaviorUpdateContext& context)

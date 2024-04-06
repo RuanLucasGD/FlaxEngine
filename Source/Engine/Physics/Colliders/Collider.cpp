@@ -1,11 +1,10 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Collider.h"
 #include "Engine/Core/Log.h"
 #if USE_EDITOR
 #include "Engine/Level/Scene/SceneRendering.h"
 #endif
-#include "Engine/Serialization/Serialization.h"
 #include "Engine/Physics/PhysicsSettings.h"
 #include "Engine/Physics/Physics.h"
 #include "Engine/Physics/PhysicsBackend.h"
@@ -202,7 +201,7 @@ void Collider::CreateShape()
 
     // Create shape
     const bool isTrigger = _isTrigger && CanBeTrigger();
-    _shape = PhysicsBackend::CreateShape(this, shape, Material.Get(), IsActiveInHierarchy(), isTrigger);
+    _shape = PhysicsBackend::CreateShape(this, shape, Material, IsActiveInHierarchy(), isTrigger);
     PhysicsBackend::SetShapeContactOffset(_shape, _contactOffset);
     UpdateLayerBits();
 }
@@ -289,31 +288,7 @@ void Collider::OnMaterialChanged()
 {
     // Update the shape material
     if (_shape)
-        PhysicsBackend::SetShapeMaterial(_shape, Material.Get());
-}
-
-void Collider::Serialize(SerializeStream& stream, const void* otherObj)
-{
-    // Base
-    PhysicsColliderActor::Serialize(stream, otherObj);
-
-    SERIALIZE_GET_OTHER_OBJ(Collider);
-
-    SERIALIZE_MEMBER(IsTrigger, _isTrigger);
-    SERIALIZE_MEMBER(Center, _center);
-    SERIALIZE_MEMBER(ContactOffset, _contactOffset);
-    SERIALIZE(Material);
-}
-
-void Collider::Deserialize(DeserializeStream& stream, ISerializeModifier* modifier)
-{
-    // Base
-    PhysicsColliderActor::Deserialize(stream, modifier);
-
-    DESERIALIZE_MEMBER(IsTrigger, _isTrigger);
-    DESERIALIZE_MEMBER(Center, _center);
-    DESERIALIZE_MEMBER(ContactOffset, _contactOffset);
-    DESERIALIZE(Material);
+        PhysicsBackend::SetShapeMaterial(_shape, Material);
 }
 
 void Collider::BeginPlay(SceneBeginData* data)
@@ -463,7 +438,7 @@ void Collider::OnPhysicsSceneChanged(PhysicsScene* previous)
 
     if (_staticActor != nullptr)
     {
-        PhysicsBackend::RemoveSceneActor(previous->GetPhysicsScene(), _staticActor);
+        PhysicsBackend::RemoveSceneActor(previous->GetPhysicsScene(), _staticActor, true);
         void* scene = GetPhysicsScene()->GetPhysicsScene();
         PhysicsBackend::AddSceneActor(scene, _staticActor);
     }

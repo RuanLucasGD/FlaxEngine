@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if GRAPHICS_API_DIRECTX12
 
@@ -373,8 +373,8 @@ bool GPUDeviceDX12::Init()
     {
         auto& limits = Limits;
         limits.HasCompute = true;
-        limits.HasTessellation = true;
-        limits.HasGeometryShaders = true;
+        limits.HasTessellation = GPU_ALLOW_TESSELLATION_SHADERS;
+        limits.HasGeometryShaders = GPU_ALLOW_GEOMETRY_SHADERS;
         limits.HasInstancing = true;
         limits.HasVolumeTextureRendering = true;
         limits.HasDrawIndirect = true;

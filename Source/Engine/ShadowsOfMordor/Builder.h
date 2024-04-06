@@ -1,9 +1,10 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
 #include "Engine/Content/Assets/Model.h"
 #include "Engine/Content/Assets/Shader.h"
+#include "Engine/Core/Types/DateTime.h"
 #include "Engine/CSG/CSGMesh.h"
 #include "Builder.Config.h"
 

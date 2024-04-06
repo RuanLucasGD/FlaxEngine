@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -180,7 +180,18 @@ namespace Flax.Build.Bindings
             return sb.ToString();
         }
 
-        public override string ToString()
+        public static TypeInfo FromString(string text)
+        {
+            var result = new TypeInfo(text);
+            if (result.Type.EndsWith('*'))
+            {
+                result.IsPtr = true;
+                result.Type = result.Type.Substring(0, result.Type.Length - 1);
+            }
+            return result;
+        }
+
+        public string ToString(bool canRef = true)
         {
             var sb = new StringBuilder(64);
             if (IsConst)
@@ -199,11 +210,16 @@ namespace Flax.Build.Bindings
             }
             if (IsPtr)
                 sb.Append('*');
-            if (IsRef)
+            if (IsRef && canRef)
                 sb.Append('&');
-            if (IsMoveRef)
+            if (IsMoveRef && canRef)
                 sb.Append('&');
             return sb.ToString();
+        }
+
+        public override string ToString()
+        {
+            return ToString(true);
         }
 
         public static bool Equals(List<TypeInfo> a, List<TypeInfo> b)

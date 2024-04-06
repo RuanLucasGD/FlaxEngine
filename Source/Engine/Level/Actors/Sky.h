@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -31,19 +31,19 @@ public:
     /// <summary>
     /// Directional light that is used to simulate the sun.
     /// </summary>
-    API_FIELD(Attributes="EditorOrder(10), DefaultValue(null), EditorDisplay(\"Sun\")")
+    API_FIELD(Attributes="EditorOrder(10), DefaultValue(null), EditorDisplay(\"Sky\")")
     ScriptingObjectReference<DirectionalLight> SunLight;
 
     /// <summary>
     /// The sun disc scale.
     /// </summary>
-    API_FIELD(Attributes="EditorOrder(20), DefaultValue(2.0f), EditorDisplay(\"Sun\"), Limit(0, 100, 0.01f)")
+    API_FIELD(Attributes="EditorOrder(20), DefaultValue(2.0f), EditorDisplay(\"Sky\"), Limit(0, 100, 0.01f)")
     float SunDiscScale = 2.0f;
 
     /// <summary>
     /// The sun power.
     /// </summary>
-    API_FIELD(Attributes="EditorOrder(30), DefaultValue(8.0f), EditorDisplay(\"Sun\"), Limit(0, 1000, 0.01f)")
+    API_FIELD(Attributes="EditorOrder(30), DefaultValue(8.0f), EditorDisplay(\"Sky\"), Limit(0, 1000, 0.01f)")
     float SunPower = 8.0f;
 
 private:

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Engine.h"
 #include "Game.h"
@@ -214,9 +214,6 @@ int32 Engine::Main(const Char* cmdLine)
             Time::OnEndDraw();
             FrameMark;
         }
-
-        // Collect physics simulation results (does nothing if Simulate hasn't been called in the previous loop step)
-        Physics::CollectResults();
     }
 
     // Call on exit event
@@ -244,6 +241,8 @@ void Engine::Exit(int32 exitCode)
 
 void Engine::RequestExit(int32 exitCode)
 {
+    if (Globals::IsRequestingExit)
+        return;
 #if USE_EDITOR
     // Send to editor (will leave play mode if need to)
     if (Editor::Managed->OnAppExit())
@@ -288,6 +287,9 @@ void Engine::OnLateFixedUpdate()
 
     // Update services
     EngineService::OnLateFixedUpdate();
+
+    // Collect physics simulation results (does nothing if Simulate hasn't been called in the previous loop step)
+    Physics::CollectResults();
 }
 
 void Engine::OnUpdate()
@@ -522,7 +524,13 @@ void EngineImpl::InitLog()
     LOG(Info, "Compiled for Dev Environment");
 #endif
     LOG(Info, "Version " FLAXENGINE_VERSION_TEXT);
-    LOG(Info, "Compiled: {0} {1}", TEXT(__DATE__), TEXT(__TIME__));
+    const Char* cpp = TEXT("?");
+    if (__cplusplus == 202101L) cpp = TEXT("C++23");
+    else if (__cplusplus == 202002L) cpp = TEXT("C++20");
+    else if (__cplusplus == 201703L) cpp = TEXT("C++17");
+    else if (__cplusplus == 201402L) cpp = TEXT("C++14");
+    else if (__cplusplus == 201103L) cpp = TEXT("C++11");
+    LOG(Info, "Compiled: {0} {1} {2}", TEXT(__DATE__), TEXT(__TIME__), cpp);
 #ifdef _MSC_VER
     const String mcsVer = StringUtils::ToString(_MSC_FULL_VER);
     LOG(Info, "Compiled with Visual C++ {0}.{1}.{2}.{3:0^2d}", mcsVer.Substring(0, 2), mcsVer.Substring(2, 2), mcsVer.Substring(4, 5), _MSC_BUILD);

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -74,6 +74,9 @@ public:
     /// Ensures that storage manager is unlocked (by stopping the thread if its locked).
     /// </summary>
     static void EnsureUnlocked();
+
+    // Formats path into valid format used by the storage system (normalized and absolute).
+    static void FormatPath(String& path);
 
 public:
     /// <summary>

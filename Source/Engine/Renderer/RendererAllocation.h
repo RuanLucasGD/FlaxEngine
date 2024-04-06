@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -10,6 +10,8 @@ class RendererAllocation
 public:
     static FLAXENGINE_API void* Allocate(uintptr size);
     static FLAXENGINE_API void Free(void* ptr, uintptr size);
+
+    enum { HasSwap = true };
 
     template<typename T>
     class Data

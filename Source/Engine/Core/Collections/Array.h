@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -24,6 +24,19 @@ private:
     int32 _count;
     int32 _capacity;
     AllocationData _allocation;
+
+    FORCE_INLINE static void MoveToEmpty(AllocationData& to, AllocationData& from, int32 fromCount, int32 fromCapacity)
+    {
+        if IF_CONSTEXPR (AllocationType::HasSwap)
+            to.Swap(from);
+        else
+        {
+            to.Allocate(fromCapacity);
+            Memory::MoveItems(to.Get(), from.Get(), fromCount);
+            Memory::DestructItems(from.Get(), fromCount);
+            from.Free();
+        }
+    }
 
 public:
     /// <summary>
@@ -134,7 +147,7 @@ public:
         _capacity = other._capacity;
         other._count = 0;
         other._capacity = 0;
-        _allocation.Swap(other._allocation);
+        MoveToEmpty(_allocation, other._allocation, _count, _capacity);
     }
 
     /// <summary>
@@ -191,7 +204,7 @@ public:
             _capacity = other._capacity;
             other._count = 0;
             other._capacity = 0;
-            _allocation.Swap(other._allocation);
+            MoveToEmpty(_allocation, other._allocation, _count, _capacity);
         }
         return *this;
     }
@@ -235,6 +248,16 @@ public:
     FORCE_INLINE bool IsEmpty() const
     {
         return _count == 0;
+    }
+
+    /// <summary>
+    /// Determines if given index is valid.
+    /// </summary>
+    /// <param name="index">The index.</param>
+    /// <returns><c>true</c> if is valid a index; otherwise, <c>false</c>.</returns>
+    bool IsValidIndex(int32 index) const
+    {
+        return index < _count && index >= 0;
     }
 
     /// <summary>
@@ -713,9 +736,16 @@ public:
     /// <param name="other">The other collection.</param>
     void Swap(Array& other)
     {
-        ::Swap(_count, other._count);
-        ::Swap(_capacity, other._capacity);
-        _allocation.Swap(other._allocation);
+        if IF_CONSTEXPR (AllocationType::HasSwap)
+        {
+            _allocation.Swap(other._allocation);
+            ::Swap(_count, other._count);
+            ::Swap(_capacity, other._capacity);
+        }
+        else
+        {
+            ::Swap(other, *this);
+        }
     }
 
     /// <summary>
@@ -726,9 +756,7 @@ public:
         T* data = _allocation.Get();
         const int32 count = _count / 2;
         for (int32 i = 0; i < count; i++)
-        {
             ::Swap(data[i], data[_count - i - 1]);
-        }
     }
 
 public:

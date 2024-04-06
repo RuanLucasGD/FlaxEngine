@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -235,6 +235,9 @@ public:
         Guid id = Guid::Empty;
         return ImportIfEdited(inputPath, outputPath, id, arg);
     }
+
+    // Converts source files path into the relative format if enabled by the project settings. Result path can be stored in asset for reimports.
+    static String GetImportPath(const String& path);
 
 private:
     static bool Create(const CreateAssetFunction& callback, const StringView& inputPath, const StringView& outputPath, Guid& assetId, void* arg);

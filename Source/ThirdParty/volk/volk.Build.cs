@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.Collections.Generic;
 using System.IO;
@@ -42,16 +42,13 @@ public class volk : ThirdPartyModule
             break;
         case TargetPlatform.Mac:
             options.PublicDefinitions.Add("VK_USE_PLATFORM_MACOS_MVK");
-            options.DependencyFiles.Add(Path.Combine(VulkanSdk.Instance.RootPath, "../MoltenVK/dylib/macOS/libMoltenVK.dylib"));
-            options.DependencyFiles.Add(Path.Combine(VulkanSdk.Instance.RootPath, "../MoltenVK/dylib/macOS/MoltenVK_icd.json"));
             break;
         case TargetPlatform.iOS:
             options.PublicDefinitions.Add("VK_USE_PLATFORM_IOS_MVK");
-            options.DependencyFiles.Add(Path.Combine(VulkanSdk.Instance.RootPath, "../MoltenVK/dylib/iOS/libMoltenVK.dylib"));
-            options.DependencyFiles.Add(Path.Combine(VulkanSdk.Instance.RootPath, "../MoltenVK/dylib/iOS/MoltenVK_icd.json"));
             break;
         default: throw new InvalidPlatformException(options.Platform.Target);
         }
+        VulkanSdk.Instance.AddDependencyFiles(options);
 
         string includesFolderPath;
         if (VulkanSdk.Instance.TryGetIncludePath(options.Platform.Target, out includesFolderPath))

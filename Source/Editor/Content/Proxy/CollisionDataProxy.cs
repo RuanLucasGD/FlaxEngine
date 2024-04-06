@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.IO;
@@ -71,7 +71,7 @@ namespace FlaxEditor.Content
         /// <inheritdoc />
         public override void Create(string outputPath, object arg)
         {
-            if (Editor.CreateAsset(Editor.NewAssetType.CollisionData, outputPath))
+            if (Editor.CreateAsset("CollisionData", outputPath))
                 throw new Exception("Failed to create new asset.");
         }
 
@@ -135,7 +135,7 @@ namespace FlaxEditor.Content
                 }
                 Task.Run(() =>
                 {
-                    Editor.CookMeshCollision(assetItem.Path, CollisionDataType.TriangleMesh, model);
+                    Editor.CookMeshCollision(assetItem.Path, CollisionDataType.ConvexMesh, model);
                     if (created != null)
                         FlaxEngine.Scripting.InvokeOnUpdate(() => created(collisionData));
                 });

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_EDITOR
 
@@ -405,12 +405,36 @@ int32 Editor::LoadProduct()
     // Create new project option
     if (CommandLine::Options.NewProject)
     {
+        Array<String> projectFiles;
+        FileSystem::DirectoryGetFiles(projectFiles, projectPath, TEXT("*.flaxproj"), DirectorySearchOption::TopDirectoryOnly);
+        if (projectFiles.Count() > 1)
+        {
+            Platform::Fatal(TEXT("Too many project files."));
+            return -2;
+        }
+        else if (projectFiles.Count() == 1)
+        {
+            LOG(Info, "Skip creating new project because it already exists");
+            CommandLine::Options.NewProject.Reset();
+        }
+        else
+        {
+            Array<String> files;
+            FileSystem::DirectoryGetFiles(files, projectPath, TEXT("*"), DirectorySearchOption::TopDirectoryOnly);
+            if (files.Count() > 0)
+            {
+                Platform::Fatal(String::Format(TEXT("Target project folder '{0}' is not empty."), projectPath));
+                return -1;
+            }
+        }
+    }
+    if (CommandLine::Options.NewProject)
+    {
         if (projectPath.IsEmpty())
             projectPath = Platform::GetWorkingDirectory();
         else if (!FileSystem::DirectoryExists(projectPath))
             FileSystem::CreateDirectory(projectPath);
         FileSystem::NormalizePath(projectPath);
-
         String folderName = StringUtils::GetFileName(projectPath);
         String tmpName;
         for (int32 i = 0; i < folderName.Length(); i++)

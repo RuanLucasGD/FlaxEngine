@@ -1,8 +1,9 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FlaxEditor.Options;
 using FlaxEngine;
 using FlaxEngine.Assertions;
 using FlaxEngine.GUI;
@@ -19,7 +20,7 @@ namespace FlaxEditor.GUI.Tree
         /// <summary>
         /// The key updates timeout in seconds.
         /// </summary>
-        public static float KeyUpdateTimeout = 0.12f;
+        public static float KeyUpdateTimeout = 0.25f;
 
         /// <summary>
         /// Delegate for selected tree nodes collection change.
@@ -43,7 +44,7 @@ namespace FlaxEditor.GUI.Tree
         /// <summary>
         /// The TreeNode that is being dragged over. This could have a value when not dragging.
         /// </summary>
-        public TreeNode DraggedOverNode = null;
+        internal TreeNode DraggedOverNode = null;
 
         /// <summary>
         /// Action fired when tree nodes selection gets changed.
@@ -113,7 +114,7 @@ namespace FlaxEditor.GUI.Tree
             AutoFocus = false;
 
             _supportMultiSelect = supportMultiSelect;
-            _keyUpdateTime = KeyUpdateTimeout * 10;
+            _keyUpdateTime = KeyUpdateTimeout;
         }
 
         internal void OnRightClickInternal(TreeNode node, ref Float2 location)
@@ -315,10 +316,7 @@ namespace FlaxEditor.GUI.Tree
             }
         }
 
-        /// <summary>
-        /// Select all expanded nodes
-        /// </summary>
-        public void SelectAllExpanded()
+        private void BulkSelectUpdateExpanded(bool select = true)
         {
             if (_supportMultiSelect)
             {
@@ -327,7 +325,8 @@ namespace FlaxEditor.GUI.Tree
 
                 // Update selection
                 Selection.Clear();
-                WalkSelectExpandedTree(Selection, _children[0] as TreeNode);
+                if (select)
+                    WalkSelectExpandedTree(Selection, _children[0] as TreeNode);
 
                 // Check if changed
                 if (Selection.Count != prev.Count || !Selection.SequenceEqual(prev))
@@ -336,6 +335,22 @@ namespace FlaxEditor.GUI.Tree
                     SelectedChanged?.Invoke(prev, Selection);
                 }
             }
+        }
+
+        /// <summary>
+        /// Select all expanded nodes
+        /// </summary>
+        public void SelectAllExpanded()
+        {
+            BulkSelectUpdateExpanded(true);
+        }
+
+        /// <summary>
+        /// Deselect all nodes
+        /// </summary>
+        public void DeselectAll()
+        {
+            BulkSelectUpdateExpanded(false);
         }
 
         /// <inheritdoc />
@@ -347,10 +362,12 @@ namespace FlaxEditor.GUI.Tree
             if (ContainsFocus && node != null && node.AutoFocus)
             {
                 var window = Root;
+                if (window.GetKeyDown(KeyboardKeys.ArrowUp) || window.GetKeyDown(KeyboardKeys.ArrowDown))
+                    _keyUpdateTime = KeyUpdateTimeout;
                 if (_keyUpdateTime >= KeyUpdateTimeout && window is WindowRootControl windowRoot && windowRoot.Window.IsFocused)
                 {
-                    bool keyUpArrow = window.GetKeyDown(KeyboardKeys.ArrowUp);
-                    bool keyDownArrow = window.GetKeyDown(KeyboardKeys.ArrowDown);
+                    bool keyUpArrow = window.GetKey(KeyboardKeys.ArrowUp);
+                    bool keyDownArrow = window.GetKey(KeyboardKeys.ArrowDown);
 
                     // Check if arrow flags are different
                     if (keyDownArrow != keyUpArrow)
@@ -470,12 +487,17 @@ namespace FlaxEditor.GUI.Tree
             // Check if can use multi selection
             if (_supportMultiSelect)
             {
-                bool isCtrlDown = Root.GetKey(KeyboardKeys.Control);
+                InputOptions options = Editor.Instance.Options.Options.Input;
 
                 // Select all expanded nodes
-                if (key == KeyboardKeys.A && isCtrlDown)
+                if (options.SelectAll.Process(this))
                 {
                     SelectAllExpanded();
+                    return true;
+                }
+                else if (options.DeselectAll.Process(this))
+                {
+                    DeselectAll();
                     return true;
                 }
             }

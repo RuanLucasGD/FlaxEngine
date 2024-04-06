@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.IO;
 using Flax.Build;
@@ -50,13 +50,13 @@ namespace Flax.Deps.Dependencies
                 "Newtonsoft.Json.pdb",
                 "Newtonsoft.Json.xml",
             };
-            var binFolder = Path.Combine(root, "Src", "Newtonsoft.Json", "bin", configuration, "net7.0");
+            var binFolder = Path.Combine(root, "Src", "Newtonsoft.Json", "bin", configuration, "net8.0");
 
             // Get the source
             CloneGitRepo(root, "https://github.com/FlaxEngine/Newtonsoft.Json.git");
 
             // Default build
-            GitCheckout(root, "flax-net70");
+            GitCheckout(root, "flax-net80");
             Deploy.VCEnvironment.BuildSolution(solutionPath, configuration, buildPlatform);
             foreach (var platform in options.Platforms)
             {

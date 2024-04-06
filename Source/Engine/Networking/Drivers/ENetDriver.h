@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -29,7 +29,7 @@ public:
     bool Connect() override;
     void Disconnect() override;
     void Disconnect(const NetworkConnection& connection) override;
-    bool PopEvent(NetworkEvent* eventPtr) override;
+    bool PopEvent(NetworkEvent& eventPtr) override;
     void SendMessage(NetworkChannelType channelType, const NetworkMessage& message) override;
     void SendMessage(NetworkChannelType channelType, const NetworkMessage& message, NetworkConnection target) override;
     void SendMessage(NetworkChannelType channelType, const NetworkMessage& message, const Array<NetworkConnection, HeapAllocation>& targets) override;

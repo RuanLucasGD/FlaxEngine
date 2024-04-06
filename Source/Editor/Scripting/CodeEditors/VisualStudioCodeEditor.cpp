@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "VisualStudioCodeEditor.h"
 #include "Engine/Platform/FileSystem.h"
@@ -78,7 +78,10 @@ void VisualStudioCodeEditor::FindEditors(Array<CodeEditor*>* output)
 
     // Detect Flatpak installations
     {
-        if (Platform::RunProcess(TEXT("/bin/bash -c \"flatpak list --app --columns=application | grep com.visualstudio.code -c\""), String::Empty) == 0)
+        CreateProcessSettings procSettings;
+        procSettings.FileName = TEXT("/bin/bash -c \"flatpak list --app --columns=application | grep com.visualstudio.code -c\"");
+        procSettings.HiddenWindow = true;
+        if (Platform::CreateProcess(procSettings) == 0)
         {
             const String runPath(TEXT("flatpak run com.visualstudio.code"));
             output->Add(New<VisualStudioCodeEditor>(runPath, false));

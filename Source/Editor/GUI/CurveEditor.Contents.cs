@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -484,6 +484,7 @@ namespace FlaxEditor.GUI
                         cm.AddSeparator();
                         cm.AddButton("Edit all keyframes", () => _editor.EditAllKeyframes(this, location));
                         cm.AddButton("Select all keyframes", _editor.SelectAll);
+                        cm.AddButton("Deselect all keyframes", _editor.DeselectAll);
                         cm.AddButton("Copy all keyframes", () =>
                         {
                             _editor.SelectAll();

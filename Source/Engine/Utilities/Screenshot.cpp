@@ -1,7 +1,8 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Screenshot.h"
 #include "Engine/Core/Log.h"
+#include "Engine/Core/Types/DateTime.h"
 #include "Engine/Core/Math/Math.h"
 #include "Engine/Graphics/RenderTask.h"
 #include "Engine/Platform/FileSystem.h"

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Navigation.h"
 #include "NavigationSettings.h"
@@ -325,11 +325,11 @@ bool Navigation::TestPath(const Vector3& startPosition, const Vector3& endPositi
     return NavMeshes.First()->TestPath(startPosition, endPosition);
 }
 
-bool Navigation::ProjectPoint(const Vector3& point, Vector3& result)
+bool Navigation::FindClosestPoint(const Vector3& point, Vector3& result)
 {
     if (NavMeshes.IsEmpty())
         return false;
-    return NavMeshes.First()->ProjectPoint(point, result);
+    return NavMeshes.First()->FindClosestPoint(point, result);
 }
 
 bool Navigation::FindRandomPoint(Vector3& result)

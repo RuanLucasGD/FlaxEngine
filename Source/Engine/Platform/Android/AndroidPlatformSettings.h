@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -18,6 +18,55 @@ API_CLASS(sealed, Namespace="FlaxEditor.Content.Settings") class FLAXENGINE_API 
     API_AUTO_SERIALIZATION();
 
     /// <summary>
+    /// Android screen orientation options.
+    /// </summary>
+    API_ENUM() enum class FLAXENGINE_API ScreenOrientation
+    {
+        /// <summary>
+        /// "portrait" mode
+        /// </summary>
+        Portrait,
+
+        /// <summary>
+        /// "reversePortrait" mode
+        /// </summary>
+        PortraitReverse,
+
+        /// <summary>
+        /// "landscape" mode
+        /// </summary>
+        LandscapeRight,
+
+        /// <summary>
+        /// "reverseLandscape" mode
+        /// </summary>
+        LandscapeLeft,
+
+        /// <summary>
+        /// "fullSensor" mode
+        /// </summary>
+        AutoRotation,
+    };
+
+    /// <summary>
+    /// The output textures quality (compression).
+    /// </summary>
+    API_ENUM() enum class TextureQuality
+    {
+        // Raw image data without any compression algorithm. Mostly for testing or compatibility.
+        Uncompressed,
+        // ASTC 4x4 block compression.
+        API_ENUM(Attributes="EditorDisplay(null, \"ASTC High\")")
+        ASTC_High,
+        // ASTC 6x6 block compression.
+        API_ENUM(Attributes="EditorDisplay(null, \"ASTC Medium\")")
+        ASTC_Medium,
+        // ASTC 8x8 block compression.
+        API_ENUM(Attributes="EditorDisplay(null, \"ASTC Low\")")
+        ASTC_Low,
+    };
+
+    /// <summary>
     /// The application package name (eg. com.company.product). Custom tokens: ${PROJECT_NAME}, ${COMPANY_NAME}.
     /// </summary>
     API_FIELD(Attributes="EditorOrder(0), EditorDisplay(\"General\")")
@@ -28,6 +77,18 @@ API_CLASS(sealed, Namespace="FlaxEditor.Content.Settings") class FLAXENGINE_API 
     /// </summary>
     API_FIELD(Attributes="EditorOrder(100), EditorDisplay(\"General\")")
     Array<String> Permissions;
+
+    /// <summary>
+    /// The default screen orientation.
+    /// </summary>
+    API_FIELD(Attributes = "EditorOrder(110), EditorDisplay(\"General\")")
+    ScreenOrientation DefaultOrientation = ScreenOrientation::AutoRotation;
+
+    /// <summary>
+    /// The output textures quality (compression).
+    /// </summary>
+    API_FIELD(Attributes="EditorOrder(500), EditorDisplay(\"General\")")
+    TextureQuality TexturesQuality = TextureQuality::ASTC_Medium;
 
     /// <summary>
     /// Custom icon texture to use for the application (overrides the default one).

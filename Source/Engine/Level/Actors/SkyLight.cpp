@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "SkyLight.h"
 #include "Engine/Core/Log.h"
@@ -99,6 +99,8 @@ void SkyLight::UpdateBounds()
 {
     _sphere = BoundingSphere(GetPosition(), GetScaledRadius());
     BoundingBox::FromSphere(_sphere, _box);
+    if (_sceneRenderingKey != -1)
+        GetSceneRendering()->UpdateActor(this, _sceneRenderingKey);
 }
 
 void SkyLight::Draw(RenderContext& renderContext)

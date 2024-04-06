@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -44,7 +44,7 @@ public:
     /// <summary>
     /// The objects cache maps the id of the object contained in the prefab asset (actor or script) to the default instance deserialized from prefab data. Valid only if asset is loaded and GetDefaultInstance was called.
     /// </summary>
-    Dictionary<Guid, const void*> ObjectsCache;
+    Dictionary<Guid, SceneObject*> ObjectsCache;
 
 public:
     /// <summary>

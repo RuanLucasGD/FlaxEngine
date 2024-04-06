@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -13,6 +13,7 @@
 API_CLASS(Attributes="ActorContextMenu(\"New/Physics/Colliders/Mesh Collider\"), ActorToolbox(\"Physics\")")
 class FLAXENGINE_API MeshCollider : public Collider
 {
+    API_AUTO_SERIALIZATION();
     DECLARE_SCENE_OBJECT(MeshCollider);
 public:
     /// <summary>
@@ -33,8 +34,6 @@ public:
     void OnDebugDrawSelected() override;
 #endif
     bool IntersectsItself(const Ray& ray, Real& distance, Vector3& normal) override;
-    void Serialize(SerializeStream& stream, const void* otherObj) override;
-    void Deserialize(DeserializeStream& stream, ISerializeModifier* modifier) override;
 
 protected:
     // [Collider]

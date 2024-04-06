@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -77,14 +77,10 @@ namespace Flax.Build
                 var architectureId = RuntimeInformation.ProcessArchitecture;
                 switch (architectureId)
                 {
-                case Architecture.X86:
-                    return TargetArchitecture.x86;
-                case Architecture.X64:
-                    return TargetArchitecture.x64;
-                case Architecture.Arm:
-                    return TargetArchitecture.ARM;
-                case Architecture.Arm64:
-                    return TargetArchitecture.ARM64;
+                case Architecture.X86: return TargetArchitecture.x86;
+                case Architecture.X64: return TargetArchitecture.x64;
+                case Architecture.Arm: return TargetArchitecture.ARM;
+                case Architecture.Arm64: return TargetArchitecture.ARM64;
                 default: throw new NotImplementedException(string.Format("Unsupported build platform {0}.", architectureId));
                 }
             }
@@ -215,7 +211,7 @@ namespace Flax.Build
         /// </summary>
         /// <param name="targetPlatform">The target platform.</param>
         /// <param name="nullIfMissing">True if return null platform if it's missing, otherwise will invoke an exception.</param>
-        /// <returns>The toolchain.</returns>
+        /// <returns>The platform.</returns>
         public static Platform GetPlatform(TargetPlatform targetPlatform, bool nullIfMissing = false)
         {
             if (_platforms == null)
@@ -290,12 +286,9 @@ namespace Flax.Build
             var subdir = "Binaries/Editor/";
             switch (Platform.BuildTargetPlatform)
             {
-                case TargetPlatform.Windows:
-                    return subdir + "Win64";
-                case TargetPlatform.Linux:
-                    return subdir + "Linux";
-                case TargetPlatform.Mac:
-                    return subdir + "Mac";
+            case TargetPlatform.Windows: return subdir + "Win64";
+            case TargetPlatform.Linux: return subdir + "Linux";
+            case TargetPlatform.Mac: return subdir + "Mac";
             }
             throw new NotImplementedException();
         }

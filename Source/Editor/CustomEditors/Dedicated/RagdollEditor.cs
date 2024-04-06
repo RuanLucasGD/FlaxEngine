@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -160,7 +160,7 @@ namespace FlaxEditor.CustomEditors.Dedicated
             var actions = new List<IUndoAction>();
             foreach (var body in bodies)
             {
-                var action = new Actions.DeleteActorsAction(new List<SceneGraphNode> { SceneGraphFactory.FindNode(body.ID) });
+                var action = new Actions.DeleteActorsAction(body);
                 action.Do();
                 actions.Add(action);
             }
@@ -185,7 +185,7 @@ namespace FlaxEditor.CustomEditors.Dedicated
             var body = bodies.FirstOrDefault(x => x.Name == name);
             if (body != null)
             {
-                var action = new Actions.DeleteActorsAction(new List<SceneGraphNode> { SceneGraphFactory.FindNode(body.ID) });
+                var action = new Actions.DeleteActorsAction(body);
                 action.Do();
                 Presenter.Undo?.AddAction(action);
             }
@@ -224,7 +224,7 @@ namespace FlaxEditor.CustomEditors.Dedicated
                     else
                     {
                         // Remove joint that will no longer be valid
-                        var action = new Actions.DeleteActorsAction(new List<SceneGraphNode> { SceneGraphFactory.FindNode(joint.ID) });
+                        var action = new Actions.DeleteActorsAction(joint);
                         action.Do();
                         Presenter.Undo?.AddAction(action);
                     }
@@ -233,7 +233,7 @@ namespace FlaxEditor.CustomEditors.Dedicated
 
             // Remove body
             {
-                var action = new Actions.DeleteActorsAction(new List<SceneGraphNode> { SceneGraphFactory.FindNode(body.ID) });
+                var action = new Actions.DeleteActorsAction(body);
                 action.Do();
                 Presenter.Undo?.AddAction(action);
             }

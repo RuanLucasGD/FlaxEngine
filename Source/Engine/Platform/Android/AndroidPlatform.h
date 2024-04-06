@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -132,6 +132,7 @@ public:
     static void* LoadLibrary(const Char* filename);
     static void FreeLibrary(void* handle);
     static void* GetProcAddress(void* handle, const char* symbol);
+    static Array<StackFrame, HeapAllocation> GetStackFrames(int32 skipCount = 0, int32 maxDepth = 60, void* context = nullptr);
 };
 
 #endif

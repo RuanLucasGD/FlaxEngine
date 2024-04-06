@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using FlaxEditor.Content.Thumbnails;
@@ -72,7 +72,10 @@ namespace FlaxEditor.Content
         {
             if (_preview == null)
             {
-                _preview = new ModelPreview(false);
+                _preview = new ModelPreview(false)
+                {
+                    ScaleToFit = false,
+                };
                 InitAssetPreview(_preview);
             }
 
@@ -91,6 +94,7 @@ namespace FlaxEditor.Content
             _preview.Model = (Model)request.Asset;
             _preview.Parent = guiRoot;
             _preview.SyncBackbufferSize();
+            _preview.ViewportCamera.SetArcBallView(_preview.Model.GetBox());
 
             _preview.Task.OnDraw();
         }

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Model.h"
 #include "Engine/Core/Log.h"
@@ -34,7 +34,6 @@
 #define CHECK_INVALID_BUFFER(model, buffer) \
     if (buffer->IsValidFor(model) == false) \
 	{ \
-		LOG(Warning, "Invalid Model Instance Buffer size {0} for Model {1}. It should be {2}. Manual update to proper size.", buffer->Count(), model->ToString(), model->MaterialSlots.Count()); \
 		buffer->Setup(model); \
 	}
 

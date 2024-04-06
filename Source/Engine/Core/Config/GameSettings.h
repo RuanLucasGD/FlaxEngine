@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -12,9 +12,9 @@
 /// </summary>
 API_CLASS(sealed, Namespace="FlaxEditor.Content.Settings") class FLAXENGINE_API GameSettings : public SettingsBase
 {
-DECLARE_SCRIPTING_TYPE_MINIMAL(GameSettings);
-public:
+    DECLARE_SCRIPTING_TYPE_MINIMAL(GameSettings);
 
+public:
     /// <summary>
     /// The product full name.
     /// </summary>
@@ -59,7 +59,6 @@ public:
     Dictionary<String, Guid> CustomSettings;
 
 public:
-
     // Settings containers
     Guid Time;
     Guid Audio;
@@ -87,7 +86,6 @@ public:
     Guid iOSPlatform;
 
 public:
-
     /// <summary>
     /// Gets the instance of the game settings asset (null if missing). Object returned by this method is always loaded with valid data to use.
     /// </summary>

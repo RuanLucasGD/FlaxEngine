@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.Collections.Generic;
 using System.IO;
@@ -57,6 +57,12 @@ public class TextureTool : EngineModule
                 options.PrivateDependencies.Add("detex");
                 options.PrivateDependencies.Add("bc7enc16");
             }
+        }
+        if (options.Target.IsEditor && astc.IsSupported(options))
+        {
+            // ASTC for mobile (iOS and Android)
+            options.SourceFiles.Add(Path.Combine(FolderPath, "TextureTool.astc.cpp"));
+            options.PrivateDependencies.Add("astc");
         }
 
         options.PublicDefinitions.Add("COMPILE_WITH_TEXTURE_TOOL");

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections;
@@ -180,6 +180,8 @@ namespace FlaxEngine
 
         private static void OnLocalizationChanged()
         {
+            // Invariant-globalization only (see InitHostfxr with Mono)
+#if !(PLATFORM_IOS || PLATFORM_SWITCH)
             var currentThread = Thread.CurrentThread;
             var language = Localization.CurrentLanguage;
             if (language != null)
@@ -187,6 +189,7 @@ namespace FlaxEngine
             var culture = Localization.CurrentCulture;
             if (culture != null)
                 currentThread.CurrentCulture = culture;
+#endif
         }
 
         /// <summary>
@@ -235,6 +238,10 @@ namespace FlaxEngine
 
         internal static ManagedHandle CultureInfoToManaged(int lcid)
         {
+#if PLATFORM_IOS || PLATFORM_SWITCH
+            // Invariant-globalization only (see InitHostfxr with Mono)
+            lcid = 0;
+#endif
             return ManagedHandle.Alloc(new CultureInfo(lcid));
         }
 

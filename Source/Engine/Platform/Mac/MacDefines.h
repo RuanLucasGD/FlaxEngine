@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -21,5 +21,8 @@
 #define PLATFORM_CACHE_LINE_SIZE 128
 #define PLATFORM_HAS_HEADLESS_MODE 1
 #define PLATFORM_DEBUG_BREAK __builtin_trap()
+
+// MoltenVK has artifacts when using tess so disable it
+#define GPU_ALLOW_TESSELLATION_SHADERS 0
 
 #endif

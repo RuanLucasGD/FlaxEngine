@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.IO;
@@ -79,7 +79,14 @@ namespace FlaxEditor.Windows
 
                 if (item.HasDefaultThumbnail == false)
                 {
-                    cm.AddButton("Refresh thumbnail", item.RefreshThumbnail);
+                    if (_view.SelectedCount > 1)
+                        cm.AddButton("Refresh thumbnails", () =>
+                        {
+                            foreach (var e in _view.Selection)
+                                e.RefreshThumbnail();
+                        });
+                    else
+                        cm.AddButton("Refresh thumbnail", item.RefreshThumbnail);
                 }
 
                 if (!isFolder)
@@ -114,18 +121,32 @@ namespace FlaxEditor.Windows
                     }
                 }
 
-                cm.AddButton("Delete", () => Delete(item));
+                if (isFolder && folder.Node is MainContentTreeNode)
+                {
+                    cm.AddSeparator();
+                }
+                else
+                {
+                    cm.AddButton("Delete", () => Delete(item));
 
-                cm.AddSeparator();
+                    cm.AddSeparator();
 
-                cm.AddButton("Duplicate", _view.Duplicate);
+                    cm.AddButton("Duplicate", _view.Duplicate);
 
-                cm.AddButton("Copy", _view.Copy);
+                    cm.AddButton("Copy", _view.Copy);
+                }
 
                 b = cm.AddButton("Paste", _view.Paste);
                 b.Enabled = _view.CanPaste();
 
-                cm.AddButton("Rename", () => Rename(item));
+                if (isFolder && folder.Node is MainContentTreeNode)
+                {
+                    // Do nothing
+                }
+                else
+                {
+                    cm.AddButton("Rename", () => Rename(item));
+                }
 
                 // Custom options
                 ContextMenuShow?.Invoke(cm, item);

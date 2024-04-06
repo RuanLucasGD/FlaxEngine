@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -78,9 +78,9 @@ public:
     FlaxChunkFlags Flags = FlaxChunkFlags::None;
 
     /// <summary>
-    /// The last usage time (atomic, ticks of DateTime in UTC).
+    /// The last usage time.
     /// </summary>
-    int64 LastAccessTime = 0;
+    double LastAccessTime = 0.0;
 
     /// <summary>
     /// The chunk data.

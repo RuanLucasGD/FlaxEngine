@@ -1,11 +1,10 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
 #include "Engine/Core/Object.h"
 #include "Engine/Core/Delegate.h"
 #include "Engine/Core/Types/String.h"
-#include "Engine/Core/Types/DateTime.h"
 #include "Engine/Core/Collections/Array.h"
 #include "Engine/Platform/CriticalSection.h"
 #include "Engine/Serialization/FileReadStream.h"
@@ -90,11 +89,11 @@ protected:
     // State
     int64 _refCount;
     int64 _chunksLock;
-    DateTime _lastRefLostTime;
+    double _lastRefLostTime;
     CriticalSection _loadLocker;
 
     // Storage
-    ThreadLocalObject<FileReadStream> _file;
+    ThreadLocal<FileReadStream*> _file;
     Array<FlaxChunk*> _chunks;
 
     // Metadata
@@ -115,7 +114,7 @@ private:
         Platform::InterlockedDecrement(&_refCount);
         if (Platform::AtomicRead(&_refCount) == 0)
         {
-            _lastRefLostTime = DateTime::NowUTC();
+            _lastRefLostTime = Platform::GetTimeSeconds();
         }
     }
 
@@ -405,7 +404,7 @@ public:
     /// <summary>
     /// Closes the file handles (it can be modified from the outside).
     /// </summary>
-    void CloseFileHandles();
+    bool CloseFileHandles();
 
     /// <summary>
 	/// Releases storage resources and closes handle to the file.

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "ShadowsPass.h"
 #include "GBufferPass.h"
@@ -83,18 +83,20 @@ bool ShadowsPass::Init()
 
     // Select format for shadow maps
     _shadowMapFormat = PixelFormat::Unknown;
+#if !PLATFORM_SWITCH // TODO: fix shadows performance issue on Switch
     for (const PixelFormat format : { PixelFormat::D16_UNorm, PixelFormat::D24_UNorm_S8_UInt, PixelFormat::D32_Float })
     {
         const auto formatTexture = PixelFormatExtensions::FindShaderResourceFormat(format, false);
         const auto formatFeaturesDepth = GPUDevice::Instance->GetFormatFeatures(format);
         const auto formatFeaturesTexture = GPUDevice::Instance->GetFormatFeatures(formatTexture);
-        if (EnumHasAllFlags(formatFeaturesDepth.Support, FormatSupport::DepthStencil | FormatSupport::Texture2D) &&
+        if (EnumHasAllFlags(formatFeaturesDepth.Support, FormatSupport::DepthStencil | FormatSupport::Texture2D | FormatSupport::TextureCube) &&
             EnumHasAllFlags(formatFeaturesTexture.Support, FormatSupport::ShaderSample | FormatSupport::ShaderSampleComparison))
         {
             _shadowMapFormat = format;
             break;
         }
     }
+#endif
     if (_shadowMapFormat == PixelFormat::Unknown)
         LOG(Warning, "GPU doesn't support shadows rendering");
 
@@ -229,6 +231,9 @@ void ShadowsPass::SetupLight(RenderContext& renderContext, RenderContextBatch& r
 #if USE_EDITOR
     if (IsRunningRadiancePass)
         blendCSM = false;
+#elif PLATFORM_SWITCH || PLATFORM_IOS || PLATFORM_ANDROID
+    // Disable cascades blending on low-end platforms
+    blendCSM = false;
 #endif
 
     // Views with orthographic cameras cannot use cascades, we force it to 1 shadow map here
@@ -247,19 +252,12 @@ void ShadowsPass::SetupLight(RenderContext& renderContext, RenderContextBatch& r
         minDistance = cameraNear;
         maxDistance = cameraNear + shadowsDistance;
 
-        // TODO: expose partition mode?
-        enum class PartitionMode
-        {
-            Manual = 0,
-            Logarithmic = 1,
-            PSSM = 2,
-        };
-        PartitionMode partitionMode = PartitionMode::Manual;
+        PartitionMode partitionMode = light.PartitionMode;
         float pssmFactor = 0.5f;
-        float splitDistance0 = 0.05f;
-        float splitDistance1 = 0.15f;
-        float splitDistance2 = 0.50f;
-        float splitDistance3 = 1.00f;
+        float splitDistance0 = light.Cascade1Spacing;
+        float splitDistance1 = Math::Max(splitDistance0, light.Cascade2Spacing);
+        float splitDistance2 = Math::Max(splitDistance1, light.Cascade3Spacing);
+        float splitDistance3 = Math::Max(splitDistance2, light.Cascade4Spacing);
 
         // Compute the split distances based on the partitioning mode
         if (partitionMode == PartitionMode::Manual)

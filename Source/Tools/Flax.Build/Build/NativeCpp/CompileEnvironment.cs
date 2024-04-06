@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -162,6 +162,21 @@ namespace Flax.Build.NativeCpp
         /// </summary>
         public readonly HashSet<string> CustomArgs = new HashSet<string>();
 
+        /// <summary>
+        /// The Precompiled Header File (PCH) usage.
+        /// </summary>
+        public PrecompiledHeaderFileUsage PrecompiledHeaderUsage = PrecompiledHeaderFileUsage.None;
+
+        /// <summary>
+        /// The Precompiled Header File (PCH) binary path. Null if not created.
+        /// </summary>
+        public string PrecompiledHeaderFile;
+
+        /// <summary>
+        /// The Precompiled Header File (PCH) source path. Null if not provided.
+        /// </summary>
+        public string PrecompiledHeaderSource;
+
         /// <inheritdoc />
         public object Clone()
         {
@@ -184,7 +199,10 @@ namespace Flax.Build.NativeCpp
                 StringPooling = StringPooling,
                 IntrinsicFunctions = IntrinsicFunctions,
                 BufferSecurityCheck = BufferSecurityCheck,
-                TreatWarningsAsErrors = TreatWarningsAsErrors
+                TreatWarningsAsErrors = TreatWarningsAsErrors,
+                PrecompiledHeaderUsage = PrecompiledHeaderUsage,
+                PrecompiledHeaderFile = PrecompiledHeaderFile,
+                PrecompiledHeaderSource = PrecompiledHeaderSource,
             };
             clone.PreprocessorDefinitions.AddRange(PreprocessorDefinitions);
             clone.IncludePaths.AddRange(IncludePaths);

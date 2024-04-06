@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.ComponentModel;
 using FlaxEngine;
@@ -56,6 +56,10 @@ namespace FlaxEditor.Options
         [EditorDisplay("Common"), EditorOrder(190)]
         public InputBinding SelectAll = new InputBinding(KeyboardKeys.A, KeyboardKeys.Control);
 
+        [DefaultValue(typeof(InputBinding), "Ctrl+Shift+A")]
+        [EditorDisplay("Common"), EditorOrder(195)]
+        public InputBinding DeselectAll = new InputBinding(KeyboardKeys.A, KeyboardKeys.Shift, KeyboardKeys.Control);
+
         [DefaultValue(typeof(InputBinding), "F")]
         [EditorDisplay("Common"), EditorOrder(200)]
         public InputBinding FocusSelection = new InputBinding(KeyboardKeys.F);
@@ -111,6 +115,10 @@ namespace FlaxEditor.Options
         [DefaultValue(typeof(InputBinding), "End")]
         [EditorDisplay("Scene", "Snap To Ground"), EditorOrder(500)]
         public InputBinding SnapToGround = new InputBinding(KeyboardKeys.End);
+
+        [DefaultValue(typeof(InputBinding), "End")]
+        [EditorDisplay("Scene", "Vertex Snapping"), EditorOrder(550)]
+        public InputBinding SnapToVertex = new InputBinding(KeyboardKeys.V);
 
         [DefaultValue(typeof(InputBinding), "F5")]
         [EditorDisplay("Scene", "Play/Stop"), EditorOrder(510)]
@@ -311,6 +319,10 @@ namespace FlaxEditor.Options
         [DefaultValue(typeof(InputBinding), "Numpad2")]
         [EditorDisplay("Viewport"), EditorOrder(1750)]
         public InputBinding ViewpointBottom = new InputBinding(KeyboardKeys.Numpad2);
+
+        [DefaultValue(typeof(InputBinding), "NumpadDecimal")]
+        [EditorDisplay("Viewport"), EditorOrder(1760)]
+        public InputBinding ToggleOrthographic = new InputBinding(KeyboardKeys.NumpadDecimal);
 
         #endregion
 

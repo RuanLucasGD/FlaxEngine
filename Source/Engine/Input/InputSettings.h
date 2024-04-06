@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -12,6 +12,7 @@
 API_CLASS(sealed, Namespace="FlaxEditor.Content.Settings") class FLAXENGINE_API InputSettings : public SettingsBase
 {
     DECLARE_SCRIPTING_TYPE_MINIMAL(InputSettings);
+
 public:
     /// <summary>
     /// Maps a discrete button or key press events to a "friendly name" that will later be bound to event-driven behavior. The end effect is that pressing (and/or releasing) a key, mouse button, or keypad button.

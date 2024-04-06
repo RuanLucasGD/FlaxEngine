@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "PrecompileAssembliesStep.h"
 #include "Engine/Platform/FileSystem.h"
@@ -35,7 +35,8 @@ void PrecompileAssembliesStep::OnBuildStarted(CookingData& data)
         if (cachedData != aotModeCacheValue)
         {
             LOG(Info, "AOT cache invalidation");
-            FileSystem::DeleteDirectory(data.ManagedCodeOutputPath);
+            FileSystem::DeleteDirectory(data.ManagedCodeOutputPath); // Remove AOT cache
+            FileSystem::DeleteDirectory(data.DataOutputPath / TEXT("Dotnet")); // Remove deployed Dotnet libs (be sure to remove any leftovers from previous build)
         }
     }
     if (!FileSystem::DirectoryExists(data.ManagedCodeOutputPath))
@@ -67,8 +68,8 @@ bool PrecompileAssembliesStep::Perform(CookingData& data)
     data.GetBuildPlatformName(platform, architecture);
     const String logFile = data.CacheDirectory / TEXT("AOTLog.txt");
     String args = String::Format(
-        TEXT("-log -logfile=\"{}\" -runDotNetAOT -mutex -platform={} -arch={} -configuration={} -aotMode={} -binaries=\"{}\" -intermediate=\"{}\""),
-        logFile, platform, architecture, configuration, ToString(aotMode), data.DataOutputPath, data.ManagedCodeOutputPath);
+        TEXT("-log -logfile=\"{}\" -runDotNetAOT -mutex -platform={} -arch={} -configuration={} -aotMode={} -binaries=\"{}\" -intermediate=\"{}\" {}"),
+        logFile, platform, architecture, configuration, ToString(aotMode), data.DataOutputPath, data.ManagedCodeOutputPath, GAME_BUILD_DOTNET_VER);
     if (!buildSettings.SkipUnusedDotnetLibsPackaging)
         args += TEXT(" -skipUnusedDotnetLibs=false"); // Run AOT on whole class library (not just used libs)
     for (const String& define : data.CustomDefines)

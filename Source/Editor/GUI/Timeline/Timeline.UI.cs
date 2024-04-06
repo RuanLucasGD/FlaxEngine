@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using FlaxEditor.CustomEditors;
 using FlaxEditor.GUI.ContextMenu;
@@ -304,7 +304,9 @@ namespace FlaxEditor.GUI.Timeline
                 if (IsDragOver && _currentDragEffect != DragDropEffect.None)
                 {
                     var style = Style.Current;
-                    Render2D.FillRectangle(new Rectangle(Float2.Zero, Size), style.BackgroundSelected * 0.4f);
+                    var bounds = new Rectangle(Float2.Zero, Size);
+                    Render2D.FillRectangle(bounds, style.Selection);
+                    Render2D.DrawRectangle(bounds, style.SelectionBorder);
                 }
 
                 base.Draw();

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.IO;
 using System.Linq;
@@ -39,7 +39,8 @@ namespace Flax.Build.Platforms
             if (!toolsets.ContainsKey(WindowsPlatformToolset.v140) &&
                 !toolsets.ContainsKey(WindowsPlatformToolset.v141) &&
                 !toolsets.ContainsKey(WindowsPlatformToolset.v142) &&
-                !toolsets.ContainsKey(WindowsPlatformToolset.v143))
+                !toolsets.ContainsKey(WindowsPlatformToolset.v143) &&
+                !toolsets.ContainsKey(WindowsPlatformToolset.v144))
             {
                 Log.Warning("Missing MSVC toolset v140 or later (VS 2015 or later C++ build tools). Cannot build for Windows platform.");
                 _hasRequiredSDKsInstalled = false;
@@ -61,10 +62,10 @@ namespace Flax.Build.Platforms
             case TargetPlatform.UWP: return GetSDKs().FirstOrDefault(x => x.Key != WindowsPlatformSDK.v8_1).Value != null;
             case TargetPlatform.PS4: return Sdk.HasValid("PS4Sdk");
             case TargetPlatform.PS5: return Sdk.HasValid("PS5Sdk");
-            case TargetPlatform.XboxOne:
-            case TargetPlatform.XboxScarlett: return GetSDKs().ContainsKey(WindowsPlatformSDK.v10_0_19041_0) && Sdk.HasValid("GDK");
             case TargetPlatform.Android: return AndroidSdk.Instance.IsValid && AndroidNdk.Instance.IsValid;
             case TargetPlatform.Switch: return Sdk.HasValid("SwitchSdk");
+            case TargetPlatform.XboxOne:
+            case TargetPlatform.XboxScarlett: return GetPlatform(platform, true)?.HasRequiredSDKsInstalled ?? false;
             default: return false;
             }
         }

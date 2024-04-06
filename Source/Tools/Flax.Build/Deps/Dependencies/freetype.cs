@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.Collections.Generic;
 using System.IO;
@@ -229,7 +229,7 @@ namespace Flax.Deps.Dependencies
                     // Build for Android
                     SetupDirectory(buildDir, true);
                     RunCmake(buildDir, TargetPlatform.Android, TargetArchitecture.ARM64, ".. -DFT_WITH_BZIP2=OFF -DFT_WITH_ZLIB=OFF -DFT_WITH_PNG=OFF -DCMAKE_BUILD_TYPE=Release");
-                    Utilities.Run("cmake", "--build .", null, buildDir, Utilities.RunOptions.None);
+                    BuildCmake(buildDir);
                     var depsFolder = GetThirdPartyFolder(options, platform, TargetArchitecture.ARM64);
                     Utilities.FileCopy(Path.Combine(buildDir, libraryFileName), Path.Combine(depsFolder, libraryFileName));
                     break;
@@ -239,7 +239,7 @@ namespace Flax.Deps.Dependencies
                     // Build for Switch
                     SetupDirectory(buildDir, true);
                     RunCmake(buildDir, platform, TargetArchitecture.ARM64, ".. -DCMAKE_BUILD_TYPE=Release");
-                    Utilities.Run("cmake", "--build .", null, buildDir, Utilities.RunOptions.None);
+                    BuildCmake(buildDir);
                     var depsFolder = GetThirdPartyFolder(options, platform, TargetArchitecture.ARM64);
                     Utilities.FileCopy(Path.Combine(buildDir, libraryFileName), Path.Combine(depsFolder, libraryFileName));
                     break;
@@ -247,11 +247,11 @@ namespace Flax.Deps.Dependencies
                 case TargetPlatform.Mac:
                 {
                     // Build for Mac
-                    foreach (var architecture in new []{ TargetArchitecture.x64, TargetArchitecture.ARM64 })
+                    foreach (var architecture in new[] { TargetArchitecture.x64, TargetArchitecture.ARM64 })
                     {
                         SetupDirectory(buildDir, true);
                         RunCmake(buildDir, platform, architecture, ".. -DCMAKE_BUILD_TYPE=Release");
-                        Utilities.Run("cmake", "--build .", null, buildDir, Utilities.RunOptions.None);
+                        BuildCmake(buildDir);
                         var depsFolder = GetThirdPartyFolder(options, platform, architecture);
                         Utilities.FileCopy(Path.Combine(buildDir, libraryFileName), Path.Combine(depsFolder, libraryFileName));
                     }
@@ -268,7 +268,7 @@ namespace Flax.Deps.Dependencies
                     // Build for iOS
                     SetupDirectory(buildDir, true);
                     RunCmake(buildDir, platform, TargetArchitecture.ARM64, ".. -DIOS_PLATFORM=OS -DCMAKE_SYSTEM_NAME=iOS -DCMAKE_BUILD_TYPE=Release -DFT_WITH_BZIP2=OFF -DFT_WITH_ZLIB=OFF -DFT_WITH_PNG=OFF");
-                    Utilities.Run("cmake", "--build .", null, buildDir, Utilities.RunOptions.None);
+                    BuildCmake(buildDir);
                     var depsFolder = GetThirdPartyFolder(options, platform, TargetArchitecture.ARM64);
                     Utilities.FileCopy(Path.Combine(buildDir, libraryFileName), Path.Combine(depsFolder, libraryFileName));
                     break;

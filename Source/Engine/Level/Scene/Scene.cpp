@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Scene.h"
 #include "SceneAsset.h"
@@ -272,9 +272,6 @@ void Scene::Serialize(SerializeStream& stream, const void* otherObj)
     Actor::Serialize(stream, otherObj);
 
     SERIALIZE_GET_OTHER_OBJ(Scene);
-
-    // Update scene info object
-    SaveTime = DateTime::NowUTC();
 
     LightmapsData.SaveLightmaps(Info.Lightmaps);
     Info.Serialize(stream, other ? &other->Info : nullptr);

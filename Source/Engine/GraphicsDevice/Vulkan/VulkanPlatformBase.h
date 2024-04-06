@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -23,7 +23,6 @@ enum class VulkanValidationLevel
 class VulkanPlatformBase
 {
 public:
-
     static void GetInstanceExtensions(Array<const char*>& extensions, Array<const char*>& layers)
     {
     }

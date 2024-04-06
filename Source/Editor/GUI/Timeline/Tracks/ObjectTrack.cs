@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -424,6 +424,7 @@ namespace FlaxEditor.GUI.Timeline.Tracks
             { typeof(Guid), KeyframesPropertyTrack.GetArchetype() },
             { typeof(DateTime), KeyframesPropertyTrack.GetArchetype() },
             { typeof(TimeSpan), KeyframesPropertyTrack.GetArchetype() },
+            { typeof(LocalizedString), KeyframesPropertyTrack.GetArchetype() },
             { typeof(string), StringPropertyTrack.GetArchetype() },
         };
     }

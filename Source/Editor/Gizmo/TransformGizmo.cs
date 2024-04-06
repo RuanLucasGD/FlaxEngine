@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_LARGE_WORLDS
 using Real = System.Double;
@@ -41,6 +41,11 @@ namespace FlaxEditor.Gizmo
         /// The event to duplicate selected objects.
         /// </summary>
         public Action Duplicate;
+
+        /// <summary>
+        /// Gets the array of selected objects.
+        /// </summary>
+        public List<SceneGraphNode> Selection => _selection;
 
         /// <summary>
         /// Gets the array of selected parent objects (as actors).
@@ -111,7 +116,8 @@ namespace FlaxEditor.Gizmo
                     if (isSelected)
                     {
                         GetSelectedObjectsBounds(out var selectionBounds, out _);
-                        ray.Position = ray.GetPoint(selectionBounds.Size.Y * 0.5f);
+                        var offset = Mathf.Max(selectionBounds.Size.Y * 0.5f, 1.0f);
+                        ray.Position = ray.GetPoint(offset);
                         continue;
                     }
 
@@ -200,7 +206,21 @@ namespace FlaxEditor.Gizmo
                     ActorNode prefabRoot = GetPrefabRootInParent(actorNode);
                     if (prefabRoot != null && actorNode != prefabRoot)
                     {
-                        hit = WalkUpAndFindActorNodeBeforeSelection(actorNode, prefabRoot);
+                        bool isPrefabInSelection = false;
+                        foreach (var e in sceneEditing.Selection)
+                        {
+                            if (e is ActorNode ae && GetPrefabRootInParent(ae) == prefabRoot)
+                            {
+                                isPrefabInSelection = true;
+                                break;
+                            }
+                        }
+
+                        // Skip selecting prefab root if we already had object from that prefab selected
+                        if (!isPrefabInSelection)
+                        {
+                            hit = WalkUpAndFindActorNodeBeforeSelection(actorNode, prefabRoot);
+                        }
                     }
                 }
 
@@ -248,13 +268,21 @@ namespace FlaxEditor.Gizmo
             // Note: because selection may contain objects and their children we have to split them and get only parents.
             // Later during transformation we apply translation/scale/rotation only on them (children inherit transformations)
             SceneGraphTools.BuildNodesParents(_selection, _selectionParents);
+
+            base.OnSelectionChanged(newSelection);
         }
 
         /// <inheritdoc />
         protected override int SelectionCount => _selectionParents.Count;
 
         /// <inheritdoc />
-        protected override Transform GetSelectedObject(int index)
+        protected override SceneGraphNode GetSelectedObject(int index)
+        {
+            return _selectionParents[index];
+        }
+
+        /// <inheritdoc />
+        protected override Transform GetSelectedTransform(int index)
         {
             return _selectionParents[index].Transform;
         }

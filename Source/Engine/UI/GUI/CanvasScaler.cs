@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.ComponentModel;
 
@@ -98,8 +98,8 @@ namespace FlaxEngine.GUI
         private float _scale = 1.0f;
         private float _scaleFactor = 1.0f;
         private float _physicalUnitSize = 1.0f;
-        private Float2 _resolutionMin = new Float2(1, 1);
-        private Float2 _resolutionMax = new Float2(10000, 10000);
+        private Float2 _resolutionMin = new Float2(640, 480);
+        private Float2 _resolutionMax = new Float2(7680, 4320);
 
         /// <summary>
         /// Gets the current UI scale. Computed based on the setup when performing layout.
@@ -430,6 +430,30 @@ namespace FlaxEngine.GUI
         }
 
         /// <inheritdoc />
+        public override bool IntersectsChildContent(Control child, Float2 location, out Float2 childSpaceLocation)
+        {
+            location /= _scale;
+            return base.IntersectsChildContent(child, location, out childSpaceLocation);
+        }
+
+        /// <inheritdoc />
+        public override bool ContainsPoint(ref Float2 location, bool precise = false)
+        {
+            if (precise) // Ignore as utility-only element
+                return false;
+            return base.ContainsPoint(ref location, precise);
+        }
+
+        /// <inheritdoc />
+        public override bool RayCast(ref Float2 location, out Control hit)
+        {
+            var p = location / _scale;
+            if (RayCastChildren(ref p, out hit))
+                return true;
+            return base.RayCast(ref location, out hit);
+        }
+
+        /// <inheritdoc />
         public override Float2 PointToParent(ref Float2 location)
         {
             var result = base.PointToParent(ref location);
@@ -443,97 +467,6 @@ namespace FlaxEngine.GUI
             var result = base.PointFromParent(ref location);
             result /= _scale;
             return result;
-        }
-
-        /// <inheritdoc />
-        public override DragDropEffect OnDragEnter(ref Float2 location, DragData data)
-        {
-            location /= _scale;
-            return base.OnDragEnter(ref location, data);
-        }
-
-        /// <inheritdoc />
-        public override DragDropEffect OnDragMove(ref Float2 location, DragData data)
-        {
-            location /= _scale;
-            return base.OnDragMove(ref location, data);
-        }
-
-        /// <inheritdoc />
-        public override DragDropEffect OnDragDrop(ref Float2 location, DragData data)
-        {
-            location /= _scale;
-            return base.OnDragDrop(ref location, data);
-        }
-
-        /// <inheritdoc />
-        public override void OnMouseEnter(Float2 location)
-        {
-            location /= _scale;
-            base.OnMouseEnter(location);
-        }
-
-        /// <inheritdoc />
-        public override void OnMouseMove(Float2 location)
-        {
-            location /= _scale;
-            base.OnMouseMove(location);
-        }
-
-        /// <inheritdoc />
-        public override bool OnMouseDown(Float2 location, MouseButton button)
-        {
-            location /= _scale;
-            return base.OnMouseDown(location, button);
-        }
-
-        /// <inheritdoc />
-        public override bool OnMouseUp(Float2 location, MouseButton button)
-        {
-            location /= _scale;
-            return base.OnMouseUp(location, button);
-        }
-
-        /// <inheritdoc />
-        public override bool OnMouseDoubleClick(Float2 location, MouseButton button)
-        {
-            location /= _scale;
-            return base.OnMouseDoubleClick(location, button);
-        }
-
-        /// <inheritdoc />
-        public override bool OnMouseWheel(Float2 location, float delta)
-        {
-            location /= _scale;
-            return base.OnMouseWheel(location, delta);
-        }
-
-        /// <inheritdoc />
-        public override void OnTouchEnter(Float2 location, int pointerId)
-        {
-            location /= _scale;
-            base.OnTouchEnter(location, pointerId);
-        }
-
-        /// <inheritdoc />
-        public override void OnTouchMove(Float2 location, int pointerId)
-        {
-            location /= _scale;
-            base.OnTouchMove(location, pointerId);
-        }
-
-        /// <inheritdoc />
-        public override bool OnTouchDown(Float2 location, int pointerId)
-        {
-            location /= _scale;
-            return base.OnTouchDown(location, pointerId);
-        }
-
-        /// <inheritdoc />
-        public override bool OnTouchUp(Float2 location, int pointerId)
-        {
-            location /= _scale;
-            return base.OnTouchUp(location, pointerId);
         }
 
         #endregion

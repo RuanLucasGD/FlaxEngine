@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "HistogramPass.h"
 #include "RenderList.h"
@@ -29,7 +29,6 @@ GPUBuffer* HistogramPass::Render(RenderContext& renderContext, GPUTexture* color
     auto context = device->GetMainContext();
     if (checkIfSkipPass() || !_isSupported)
         return nullptr;
-
     PROFILE_GPU_CPU("Histogram");
 
     // Setup constants

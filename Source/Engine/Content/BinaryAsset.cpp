@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "BinaryAsset.h"
 #include "Cache/AssetsCache.h"
@@ -150,9 +150,7 @@ void BinaryAsset::ClearDependencies()
     {
         auto asset = Cast<BinaryAsset>(Content::GetAsset(e.First));
         if (asset)
-        {
             asset->_dependantAssets.Remove(this);
-        }
     }
     Dependencies.Clear();
 }
@@ -323,26 +321,29 @@ bool BinaryAsset::SaveToAsset(const StringView& path, AssetInitData& data, bool 
 {
     // Ensure path is in a valid format
     String pathNorm(path);
-    FileSystem::NormalizePath(pathNorm);
+    ContentStorageManager::FormatPath(pathNorm);
+    const StringView filePath = pathNorm;
 
     // Find target storage container and the asset
-    auto storage = ContentStorageManager::TryGetStorage(pathNorm);
-    auto asset = Content::GetAsset(pathNorm);
+    auto storage = ContentStorageManager::TryGetStorage(filePath);
+    auto asset = Content::GetAsset(filePath);
     auto binaryAsset = dynamic_cast<BinaryAsset*>(asset);
     if (asset && !binaryAsset)
     {
         LOG(Warning, "Cannot write to the non-binary asset location.");
         return true;
     }
+    if (!binaryAsset && !storage && FileSystem::FileExists(filePath))
+    {
+        // Force-resolve storage (asset at that path could be not yet loaded into registry)
+        storage = ContentStorageManager::GetStorage(filePath);
+    }
 
     // Check if can perform write operation to the asset container
-    if (storage)
+    if (storage && !storage->AllowDataModifications())
     {
-        if (!storage->AllowDataModifications())
-        {
-            LOG(Warning, "Cannot write to the asset storage container.");
-            return true;
-        }
+        LOG(Warning, "Cannot write to the asset storage container.");
+        return true;
     }
 
     // Initialize data container
@@ -351,6 +352,11 @@ bool BinaryAsset::SaveToAsset(const StringView& path, AssetInitData& data, bool 
     {
         // Use the same asset ID
         data.Header.ID = binaryAsset->GetID();
+    }
+    else if (storage && storage->GetEntriesCount())
+    {
+        // Use the same file ID
+        data.Header.ID = storage->GetEntry(0).ID;
     }
     else
     {
@@ -373,11 +379,21 @@ bool BinaryAsset::SaveToAsset(const StringView& path, AssetInitData& data, bool 
     }
     else
     {
-        ASSERT(pathNorm.HasChars());
-        result = FlaxStorage::Create(pathNorm, data, silentMode);
+        ASSERT(filePath.HasChars());
+        result = FlaxStorage::Create(filePath, data, silentMode);
     }
     if (binaryAsset)
         binaryAsset->_isSaving = false;
+
+    if (binaryAsset)
+    {
+        // Inform dependant asset (use cloned version because it might be modified by assets when they got reloaded)
+        auto dependantAssets = binaryAsset->_dependantAssets;
+        for (auto& e : dependantAssets)
+        {
+            e->OnDependencyModified(binaryAsset);
+        }
+    }
 
     return result;
 }
@@ -568,7 +584,43 @@ Asset::LoadResult BinaryAsset::loadAsset()
     ASSERT(Storage && _header.ID.IsValid() && _header.TypeName.HasChars());
 
     auto lock = Storage->Lock();
-    return load();
+    auto chunksToPreload = getChunksToPreload();
+    if (chunksToPreload != 0)
+    {
+        // Ensure that any chunks that were requested before are loaded in memory (in case streaming flushed them out after timeout)
+        for (int32 i = 0; i < ASSET_FILE_DATA_CHUNKS; i++)
+        {
+            const auto chunk = _header.Chunks[i];
+            if (GET_CHUNK_FLAG(i) & chunksToPreload && chunk && chunk->IsMissing())
+                Storage->LoadAssetChunk(chunk);
+        }
+    }
+    const LoadResult result = load();
+#if !BUILD_RELEASE
+    if (result == LoadResult::MissingDataChunk)
+    {
+        // Provide more insights on potentially missing asset data chunk
+        Char chunksBitMask[ASSET_FILE_DATA_CHUNKS + 1];
+        Char chunksExistBitMask[ASSET_FILE_DATA_CHUNKS + 1];
+        Char chunksLoadBitMask[ASSET_FILE_DATA_CHUNKS + 1];
+        for (int32 i = 0; i < ASSET_FILE_DATA_CHUNKS; i++)
+        {
+            if (const FlaxChunk* chunk = _header.Chunks[i])
+            {
+                chunksBitMask[i] = '1';
+                chunksExistBitMask[i] = chunk->ExistsInFile() ? '1' : '0';
+                chunksLoadBitMask[i] = chunk->IsLoaded() ? '1' : '0';
+            }
+            else
+            {
+                chunksBitMask[i] = chunksExistBitMask[i] = chunksLoadBitMask[i] = '0';
+            }
+        }
+        chunksBitMask[ASSET_FILE_DATA_CHUNKS] = chunksExistBitMask[ASSET_FILE_DATA_CHUNKS] = chunksLoadBitMask[ASSET_FILE_DATA_CHUNKS] = 0;
+        LOG(Warning, "Asset reports missing data chunk. Chunks bitmask: {}, existing chunks: {} loaded chunks: {}. '{}'", chunksBitMask, chunksExistBitMask, chunksLoadBitMask, ToString());
+    }
+#endif
+    return result;
 }
 
 void BinaryAsset::releaseStorage()

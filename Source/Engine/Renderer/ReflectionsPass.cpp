@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "ReflectionsPass.h"
 #include "GBufferPass.h"
@@ -356,15 +356,11 @@ void ReflectionsPass::Render(RenderContext& renderContext, GPUTextureView* light
 {
     auto device = GPUDevice::Instance;
     auto context = device->GetMainContext();
-
-    // Skip pass if resources aren't ready
     if (checkIfSkipPass())
     {
+        // Skip pass (just clear buffer when doing debug preview)
         if (renderContext.View.Mode == ViewMode::Reflections)
-        {
             context->Clear(lightBuffer, Color::Black);
-        }
-
         return;
     }
 

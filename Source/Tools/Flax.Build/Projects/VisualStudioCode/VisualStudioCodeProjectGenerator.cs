@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -201,6 +201,8 @@ namespace Flax.Build.Projects.VisualStudioCode
                                         json.AddUnnamedField(string.Format("-buildTargets={0}", target.Name));
                                         if (!string.IsNullOrEmpty(Configuration.Compiler))
                                             json.AddUnnamedField(string.Format("-compiler={0}", Configuration.Compiler));
+                                        if (!string.IsNullOrEmpty(Configuration.Dotnet))
+                                            json.AddUnnamedField(string.Format("-dotnet={0}", Configuration.Dotnet));
                                     }
                                     json.EndArray();
 
@@ -228,6 +230,8 @@ namespace Flax.Build.Projects.VisualStudioCode
                                         json.AddUnnamedField(string.Format("--buildTargets={0}", target.Name));
                                         if (!string.IsNullOrEmpty(Configuration.Compiler))
                                             json.AddUnnamedField(string.Format("--compiler={0}", Configuration.Compiler));
+                                        if (!string.IsNullOrEmpty(Configuration.Dotnet))
+                                            json.AddUnnamedField(string.Format("-dotnet={0}", Configuration.Dotnet));
                                     }
                                     json.EndArray();
 
@@ -255,6 +259,8 @@ namespace Flax.Build.Projects.VisualStudioCode
                                         json.AddUnnamedField(string.Format("--buildTargets={0}", target.Name));
                                         if (!string.IsNullOrEmpty(Configuration.Compiler))
                                             json.AddUnnamedField(string.Format("--compiler={0}", Configuration.Compiler));
+                                        if (!string.IsNullOrEmpty(Configuration.Dotnet))
+                                            json.AddUnnamedField(string.Format("-dotnet={0}", Configuration.Dotnet));
                                     }
                                     json.EndArray();
 
@@ -404,8 +410,7 @@ namespace Flax.Build.Projects.VisualStudioCode
                                         json.AddField("stopAtEntry", false);
                                         json.AddField("externalConsole", true);
                                         break;
-                                    case TargetPlatform.Linux:
-                                        break;
+                                    case TargetPlatform.Linux: break;
                                     }
                                 }
                                 json.EndObject();
@@ -616,7 +621,7 @@ namespace Flax.Build.Projects.VisualStudioCode
                 json.AddField("**/Output", true);
                 json.AddField("**/*.flax", true);
                 json.EndObject();
-                
+
                 // Extension settings
                 json.AddField("omnisharp.useModernNet", true);
 

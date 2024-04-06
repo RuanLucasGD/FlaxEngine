@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -305,12 +305,16 @@ API_CLASS(Sealed) class FLAXENGINE_API BehaviorTreeLoopDecorator : public Behavi
     DECLARE_SCRIPTING_TYPE_WITH_CONSTRUCTOR_IMPL(BehaviorTreeLoopDecorator, BehaviorTreeDecorator);
     API_AUTO_SERIALIZATION();
 
-    // Amount of times to execute the node. Unused if LoopCountSelector is used.
-    API_FIELD(Attributes="EditorOrder(10), Limit(0)")
+    // Is the loop infinite (until failed)?
+    API_FIELD(Attributes = "EditorOrder(10)")
+    bool InfiniteLoop = false;
+
+    // Amount of times to execute the node. Unused if LoopCountSelector is used or if InfiniteLoop is used.
+    API_FIELD(Attributes="EditorOrder(20), Limit(0), VisibleIf(nameof(InfiniteLoop), true)")
     int32 LoopCount = 3;
 
-    // Amount of times to execute the node from behavior's knowledge (blackboard, goal or sensor). If set, overrides LoopCount.
-    API_FIELD(Attributes="EditorOrder(20)")
+    // Amount of times to execute the node from behavior's knowledge (blackboard, goal or sensor). If set, overrides LoopCount. Unused if InfiniteLoop is used.
+    API_FIELD(Attributes="EditorOrder(30), VisibleIf(nameof(InfiniteLoop), true)")
     BehaviorKnowledgeSelector<int32> LoopCountSelector;
 
 public:
@@ -435,6 +439,27 @@ API_CLASS(Sealed) class FLAXENGINE_API BehaviorTreeKnowledgeValuesConditionalDec
     // Values comparision mode.
     API_FIELD(Attributes="EditorOrder(20)")
     BehaviorValueComparison Comparison = BehaviorValueComparison::Equal;
+
+public:
+    // [BehaviorTreeNode]
+    bool CanUpdate(const BehaviorUpdateContext& context) override;
+};
+
+/// <summary>
+/// Checks certain knowledge value to conditionally enter the node if the value is set (eg. not-null object reference or boolean value).
+/// </summary>
+API_CLASS(Sealed) class FLAXENGINE_API BehaviorTreeKnowledgeBooleanDecorator : public BehaviorTreeDecorator
+{
+    DECLARE_SCRIPTING_TYPE_WITH_CONSTRUCTOR_IMPL(BehaviorTreeKnowledgeBooleanDecorator, BehaviorTreeDecorator);
+    API_AUTO_SERIALIZATION();
+
+    // The value from behavior's knowledge (blackboard, goal or sensor) to check if it's set (eg. not-null object reference or boolean value).
+    API_FIELD(Attributes="EditorOrder(0)")
+    BehaviorKnowledgeSelectorAny Value;
+
+    // If checked, the condition will be inverted.
+    API_FIELD(Attributes="EditorOrder(10)")
+    bool Invert = false;
 
 public:
     // [BehaviorTreeNode]

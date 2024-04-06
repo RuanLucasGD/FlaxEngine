@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -53,6 +53,9 @@ public:
 
     // Vector with all components equal 1
     static FLAXENGINE_API const Vector4Base<T> One;
+
+    // Vector with all components equal 0.5
+    static FLAXENGINE_API const Vector4Base<T> Half;
 
     // Vector X=1, Y=0, Z=0, W=0
     static FLAXENGINE_API const Vector4Base<T> UnitX;

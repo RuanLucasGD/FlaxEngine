@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using Flax.Build;
 using Flax.Build.NativeCpp;
@@ -34,6 +34,7 @@ public class Profiler : EngineModule
         case TargetPlatform.Android:
         case TargetPlatform.Linux:
         case TargetPlatform.Windows:
+        case TargetPlatform.Switch:
             options.PublicDependencies.Add("tracy");
             break;
         }

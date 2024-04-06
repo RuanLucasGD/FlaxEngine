@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using FlaxEditor.GUI.Input;
 using FlaxEngine;
@@ -33,6 +33,10 @@ namespace FlaxEditor.Surface.Elements
             Archetype = archetype;
 
             ParentNode.ValuesChanged += OnNodeValuesChanged;
+
+            // Disable slider if surface doesn't allow it
+            if (!ParentNode.Surface.CanLivePreviewValueChanges)
+                _slideSpeed = 0.0f;
         }
 
         private void OnNodeValuesChanged()

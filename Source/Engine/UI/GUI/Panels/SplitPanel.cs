@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 namespace FlaxEngine.GUI
 {
@@ -187,7 +187,7 @@ namespace FlaxEngine.GUI
                 // Start moving splitter
                 StartTracking();
                 Focus();
-                return false;
+                return true;
             }
 
             return base.OnMouseDown(location, button);

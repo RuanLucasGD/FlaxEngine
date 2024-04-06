@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -289,6 +289,7 @@ public:
             /// The keyframes array (items count is KeyframesCount). Each keyframe is represented by pair of time (of type float) and the value data (of size ValueSize).
             /// </summary>
             void* Keyframes;
+            int32 KeyframesSize;
         };
     };
 

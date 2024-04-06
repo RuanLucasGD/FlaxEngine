@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using Flax.Build.NativeCpp;
 using System;
@@ -172,15 +172,17 @@ namespace Flax.Build.Projects.VisualStudio
                                             configuration.Configuration,
                                             configuration.Platform,
                                             target.Name);
-                if (!string.IsNullOrEmpty(Configuration.Compiler))
-                    cmdLine += " -compiler=" + Configuration.Compiler;
+                Configuration.PassArgs(ref cmdLine);
 
                 vcProjectFileContent.AppendLine(string.Format("  <PropertyGroup Condition=\"'$(Configuration)|$(Platform)'=='{0}'\">", configuration.Name));
                 if (platform is IVisualStudioProjectCustomizer customizer)
                     customizer.WriteVisualStudioBuildProperties(vsProject, platform, toolchain, configuration, vcProjectFileContent, vcFiltersFileContent, vcUserFileContent);
                 vcProjectFileContent.AppendLine(string.Format("    <IntDir>{0}</IntDir>", targetBuildOptions.IntermediateFolder));
                 vcProjectFileContent.AppendLine(string.Format("    <OutDir>{0}</OutDir>", targetBuildOptions.OutputFolder));
-                vcProjectFileContent.AppendLine("    <IncludePath />");
+                if (includePaths.Count != 0)
+                    vcProjectFileContent.AppendLine(string.Format("    <IncludePath>$(IncludePath);{0}</IncludePath>", string.Join(";", includePaths)));
+                else
+                    vcProjectFileContent.AppendLine("    <IncludePath />");
                 vcProjectFileContent.AppendLine("    <ReferencePath />");
                 vcProjectFileContent.AppendLine("    <LibraryPath />");
                 vcProjectFileContent.AppendLine("    <LibraryWPath />");

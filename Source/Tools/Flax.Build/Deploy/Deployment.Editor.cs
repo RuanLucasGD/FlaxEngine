@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Flax Engine. All rights reserved.
+// Copyright (c) 2012-2024 Flax Engine. All rights reserved.
 
 #define USE_STD
 
@@ -58,7 +58,7 @@ namespace Flax.Deploy
                     DeployFile(src, dst, buildToolExe);
                     CodeSign(Path.Combine(dst, buildToolExe));
                     var buildToolDll = "Flax.Build.dll";
-                    DeployFile(src, dst,buildToolDll);
+                    DeployFile(src, dst, buildToolDll);
                     CodeSign(Path.Combine(dst, buildToolDll));
                     DeployFile(src, dst, "Flax.Build.xml", true);
                     DeployFile(src, dst, "Flax.Build.pdb");
@@ -345,12 +345,12 @@ namespace Flax.Deploy
 
                     // Optimize package size
                     Utilities.Run("strip", "FlaxEditor", null, dst, Utilities.RunOptions.None);
-                    Utilities.Run("strip", "FlaxEditor.dylib", null, dst, Utilities.RunOptions.None);
+                    Utilities.Run("strip", "FlaxEngine.dylib", null, dst, Utilities.RunOptions.None);
                     Utilities.Run("strip", "libMoltenVK.dylib", null, dst, Utilities.RunOptions.None);
 
                     // Sign binaries
                     CodeSign(Path.Combine(dst, "FlaxEditor"));
-                    CodeSign(Path.Combine(dst, "FlaxEditor.dylib"));
+                    CodeSign(Path.Combine(dst, "FlaxEngine.dylib"));
                     CodeSign(Path.Combine(dst, "libMoltenVK.dylib"));
                 }
             }

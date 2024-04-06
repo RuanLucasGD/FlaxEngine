@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.IO;
 using Flax.Build;
@@ -53,7 +53,7 @@ namespace Flax.Deps.Dependencies
             CloneGitRepoFast(root, "https://github.com/FlaxEngine/glslang.git");
 
             // Setup the external sources
-            Utilities.Run("python", "update_glslang_sources.py", null, root, Utilities.RunOptions.None);
+            Utilities.Run("python", "update_glslang_sources.py", null, root, Utilities.RunOptions.ConsoleLogOutput);
 
             foreach (var platform in options.Platforms)
             {
@@ -77,7 +77,7 @@ namespace Flax.Deps.Dependencies
                     // Build for Win64
                     File.Delete(Path.Combine(buildDir, "CMakeCache.txt"));
                     RunCmake(buildDir, platform, TargetArchitecture.x64, cmakeArgs);
-                    Utilities.Run("cmake", string.Format("--build . --config {0} --target install", configuration), null, buildDir, Utilities.RunOptions.None);
+                    Utilities.Run("cmake", string.Format("--build . --config {0} --target install", configuration), null, buildDir, Utilities.RunOptions.ConsoleLogOutput);
                     Deploy.VCEnvironment.BuildSolution(solutionPath, configuration, "x64");
                     var depsFolder = GetThirdPartyFolder(options, platform, TargetArchitecture.x64);
                     foreach (var file in outputFiles)
@@ -103,14 +103,14 @@ namespace Flax.Deps.Dependencies
 
                     // Build for Linux
                     RunCmake(root, platform, TargetArchitecture.x64, cmakeArgs);
-                    Utilities.Run("cmake", string.Format("--build . --config {0} --target install", configuration), null, buildDir, Utilities.RunOptions.None);
-                    Utilities.Run("make", null, null, root, Utilities.RunOptions.None);
+                    Utilities.Run("cmake", string.Format("--build . --config {0} --target install", configuration), null, buildDir, Utilities.RunOptions.ConsoleLogOutput);
+                    Utilities.Run("make", null, null, root, Utilities.RunOptions.ConsoleLogOutput);
                     var depsFolder = GetThirdPartyFolder(options, platform, TargetArchitecture.x64);
                     foreach (var file in outputFiles)
                     {
                         var dst = Path.Combine(depsFolder, Path.GetFileName(file));
                         Utilities.FileCopy(file, dst);
-                        //Utilities.Run("strip", string.Format("-s \"{0}\"", dst), null, null, Utilities.RunOptions.None);
+                        //Utilities.Run("strip", string.Format("-s \"{0}\"", dst), null, null, Utilities.RunOptions.ConsoleLogOutput);
                     }
                     break;
                 }
@@ -130,17 +130,17 @@ namespace Flax.Deps.Dependencies
                     };
 
                     // Build for Mac
-                    foreach (var architecture in new []{ TargetArchitecture.x64, TargetArchitecture.ARM64 })
+                    foreach (var architecture in new[] { TargetArchitecture.x64, TargetArchitecture.ARM64 })
                     {
                         RunCmake(root, platform, architecture, cmakeArgs);
-                        Utilities.Run("cmake", string.Format("--build . --config {0} --target install", configuration), null, buildDir, Utilities.RunOptions.None);
-                        Utilities.Run("make", null, null, root, Utilities.RunOptions.None);
+                        Utilities.Run("cmake", string.Format("--build . --config {0} --target install", configuration), null, buildDir, Utilities.RunOptions.ConsoleLogOutput);
+                        Utilities.Run("make", null, null, root, Utilities.RunOptions.ConsoleLogOutput);
                         var depsFolder = GetThirdPartyFolder(options, platform, architecture);
                         foreach (var file in outputFiles)
                         {
                             var dst = Path.Combine(depsFolder, Path.GetFileName(file));
                             Utilities.FileCopy(file, dst);
-                            Utilities.Run("strip", string.Format("\"{0}\"", dst), null, null, Utilities.RunOptions.None);
+                            Utilities.Run("strip", string.Format("\"{0}\"", dst), null, null, Utilities.RunOptions.ConsoleLogOutput);
                         }
                     }
                     break;

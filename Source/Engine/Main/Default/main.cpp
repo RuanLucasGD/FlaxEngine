@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if PLATFORM_LINUX || PLATFORM_MAC || PLATFORM_IOS
 
@@ -11,7 +11,9 @@ int main(int argc, char* argv[])
     StringBuilder args;
     for (int i = 1; i < argc; i++)
     {
-        args.Append(argv[i]);
+        String arg;
+        arg.SetUTF8(argv[i], StringUtils::Length(argv[i]));
+        args.Append(arg);
 
         if (i + 1 != argc)
             args.Append(TEXT(' '));

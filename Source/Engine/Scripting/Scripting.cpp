@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "BinaryModule.h"
 #include "Scripting.h"
@@ -23,7 +23,7 @@
 #include "Internal/StdTypesContainer.h"
 #include "Engine/Core/ObjectsRemovalService.h"
 #include "Engine/Core/Types/TimeSpan.h"
-#include "Engine/Profiler/ProfilerCPU.h"
+#include "Engine/Core/Types/Stopwatch.h"
 #include "Engine/Content/Asset.h"
 #include "Engine/Content/Content.h"
 #include "Engine/Engine/EngineService.h"
@@ -31,6 +31,7 @@
 #include "Engine/Engine/Time.h"
 #include "Engine/Graphics/RenderTask.h"
 #include "Engine/Serialization/JsonTools.h"
+#include "Engine/Profiler/ProfilerCPU.h"
 
 extern void registerFlaxEngineInternalCalls();
 
@@ -115,7 +116,7 @@ Action Scripting::ScriptsLoaded;
 Action Scripting::ScriptsUnload;
 Action Scripting::ScriptsReloading;
 Action Scripting::ScriptsReloaded;
-ThreadLocal<Scripting::IdsMappingTable*, PLATFORM_THREADS_LIMIT, true> Scripting::ObjectsLookupIdMapping;
+ThreadLocal<Scripting::IdsMappingTable*, PLATFORM_THREADS_LIMIT> Scripting::ObjectsLookupIdMapping;
 ScriptingService ScriptingServiceInstance;
 
 bool initFlaxEngine();
@@ -126,7 +127,7 @@ void onEngineUnloading(MAssembly* assembly);
 
 bool ScriptingService::Init()
 {
-    const auto startTime = DateTime::NowUTC();
+    Stopwatch stopwatch;
 
     // Initialize managed runtime
     if (MCore::LoadEngine())
@@ -158,9 +159,8 @@ bool ScriptingService::Init()
         return true;
     }
 
-    auto endTime = DateTime::NowUTC();
-    LOG(Info, "Scripting Engine initializated! (time: {0}ms)", (int32)((endTime - startTime).GetTotalMilliseconds()));
-
+    stopwatch.Stop();
+    LOG(Info, "Scripting Engine initializated! (time: {0}ms)", stopwatch.GetMilliseconds());
     return false;
 }
 
@@ -357,7 +357,7 @@ bool Scripting::LoadBinaryModules(const String& path, const String& projectFolde
                     if (!module)
                     {
                         // Load library
-                        const auto startTime = DateTime::NowUTC();
+                        Stopwatch stopwatch;
 #if PLATFORM_ANDROID || PLATFORM_MAC
                         // On some platforms all native binaries are side-by-side with the app in a different folder
                         if (!FileSystem::FileExists(nativePath))
@@ -390,8 +390,8 @@ bool Scripting::LoadBinaryModules(const String& path, const String& projectFolde
                             LOG(Error, "Failed to setup library '{0}' for binary module {1}.", nativePath, name);
                             return true;
                         }
-                        const auto endTime = DateTime::NowUTC();
-                        LOG(Info, "Module {0} loaded in {1}ms", name, (int32)(endTime - startTime).GetTotalMilliseconds());
+                        stopwatch.Stop();
+                        LOG(Info, "Module {0} loaded in {1}ms", name, stopwatch.GetMilliseconds());
 
                         // Get the binary module
                         module = getBinaryFunc();
@@ -852,10 +852,12 @@ void ScriptingObjectReferenceBase::OnSet(ScriptingObject* object)
 
 void ScriptingObjectReferenceBase::OnDeleted(ScriptingObject* obj)
 {
-    ASSERT(_object == obj);
-    _object->Deleted.Unbind<ScriptingObjectReferenceBase, &ScriptingObjectReferenceBase::OnDeleted>(this);
-    _object = nullptr;
-    Changed();
+    if (_object == obj)
+    {
+        _object->Deleted.Unbind<ScriptingObjectReferenceBase, &ScriptingObjectReferenceBase::OnDeleted>(this);
+        _object = nullptr;
+        Changed();
+    }
 }
 
 ScriptingObject* Scripting::FindObject(Guid id, MClass* type)

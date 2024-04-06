@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Vector2.h"
 #include "Vector3.h"
@@ -14,6 +14,8 @@ template<>
 const Float2 Float2::Zero(0.0f);
 template<>
 const Float2 Float2::One(1.0f);
+template<>
+const Float2 Float2::Half(0.5f);
 template<>
 const Float2 Float2::UnitX(1.0f, 0.0f);
 template<>

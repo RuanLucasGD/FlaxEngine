@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ private:
 #elif USE_NETCORE
     void* _handle;
     StringAnsi _name;
-    StringAnsi _namespace_;
+    StringAnsi _namespace;
     uint32 _types = 0;
     mutable uint32 _size = 0;
 #endif

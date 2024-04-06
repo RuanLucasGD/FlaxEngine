@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.Collections.Generic;
 using System.IO;
@@ -97,6 +97,18 @@ namespace Flax.Build.Platforms
                 if (soname.StartsWith("lib"))
                     soname = soname.Substring(3);
                 //args.Add(string.Format("-Wl,-soname=\"{0}\"", soname));
+            }
+
+            // Include any external folders into rpath for proper dlopen (eg. when opening Editor project with plugins)
+            if (options.LinkEnv.Output == LinkerOutput.SharedLibrary || options.LinkEnv.Output == LinkerOutput.Executable)
+            {
+                var originDir = Path.GetDirectoryName(outputFilePath);
+                foreach (var lib in options.LinkEnv.InputLibraries)
+                {
+                    var libDir = Path.GetDirectoryName(lib);
+                    if (libDir != originDir)
+                        args.Add($"-Wl,-rpath,\"{libDir}\"");
+                }
             }
 
             args.Add(string.Format("-target {0}", ArchitectureName));

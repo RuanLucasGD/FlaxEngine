@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if PLATFORM_WINDOWS
 
@@ -273,7 +273,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 
-LONG CALLBACK SehExceptionHandler(EXCEPTION_POINTERS* ep)
+long __stdcall WindowsPlatform::SehExceptionHandler(EXCEPTION_POINTERS* ep)
 {
     if (ep->ExceptionRecord->ExceptionCode == CLR_EXCEPTION)
     {

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ class CreateAssetContext;
 /// <summary>
 /// Create/Import new asset callback result
 /// </summary>
-DECLARE_ENUM_7(CreateAssetResult, Ok, Abort, Error, CannotSaveFile, InvalidPath, CannotAllocateChunk, InvalidTypeID);
+DECLARE_ENUM_8(CreateAssetResult, Ok, Abort, Error, CannotSaveFile, InvalidPath, CannotAllocateChunk, InvalidTypeID, Skip);
 
 /// <summary>
 /// Create/Import new asset callback function
@@ -113,7 +113,7 @@ private:
 /// <summary>
 /// Asset importer entry
 /// </summary>
-struct AssetImporter
+struct FLAXENGINE_API AssetImporter
 {
 public:
     /// <summary>
@@ -135,7 +135,7 @@ public:
 /// <summary>
 /// Asset creator entry
 /// </summary>
-struct AssetCreator
+struct FLAXENGINE_API AssetCreator
 {
 public:
     /// <summary>

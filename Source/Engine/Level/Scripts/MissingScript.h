@@ -1,13 +1,11 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
 #if USE_EDITOR
 
-#include "Engine/Core/Cache.h"
 #include "Engine/Scripting/Script.h"
 #include "Engine/Scripting/ScriptingObjectReference.h"
-#include "Engine/Serialization/JsonWriters.h"
 
 /// <summary>
 /// Actor script component that represents missing script.

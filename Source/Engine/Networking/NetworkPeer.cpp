@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "NetworkPeer.h"
 #include "NetworkEvent.h"
@@ -134,7 +134,7 @@ void NetworkPeer::Disconnect(const NetworkConnection& connection)
 bool NetworkPeer::PopEvent(NetworkEvent& eventRef)
 {
     PROFILE_CPU();
-    return NetworkDriver->PopEvent(&eventRef);
+    return NetworkDriver->PopEvent(eventRef);
 }
 
 NetworkMessage NetworkPeer::CreateMessage()

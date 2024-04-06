@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -360,15 +360,26 @@ namespace FlaxEditor.GUI.ContextMenu
         }
 
         /// <inheritdoc />
-        public override bool ContainsPoint(ref Float2 location)
+        public override void Show(Control parent, Float2 location)
         {
-            if (base.ContainsPoint(ref location))
+            // Remove last separator to make context menu look better
+            int lastIndex = _panel.Children.Count - 1;
+            if (lastIndex >= 0 && _panel.Children[lastIndex] is ContextMenuSeparator separator)
+                separator.Dispose();
+
+            base.Show(parent, location);
+        }
+
+        /// <inheritdoc />
+        public override bool ContainsPoint(ref Float2 location, bool precise)
+        {
+            if (base.ContainsPoint(ref location, precise))
                 return true;
 
             var cLocation = location - Location;
             for (int i = 0; i < _panel.Children.Count; i++)
             {
-                if (_panel.Children[i].ContainsPoint(ref cLocation))
+                if (_panel.Children[i].ContainsPoint(ref cLocation, precise))
                     return true;
             }
 
@@ -408,9 +419,9 @@ namespace FlaxEditor.GUI.ContextMenu
             {
                 foreach (var child in _panel.Children)
                 {
-                    if (child is ContextMenuChildMenu item && item.Visible)
+                    if (child is ContextMenuButton item && item.Visible)
                     {
-                        item.AdjustArrowAmount = -_panel.VScrollBar.Width;
+                        item.ExtraAdjustmentAmount = -_panel.VScrollBar.Width;
                     }
                 }
             }

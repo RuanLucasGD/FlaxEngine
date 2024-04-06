@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if PLATFORM_LINUX
 
@@ -28,8 +28,8 @@ const DateTime UnixEpoch(1970, 1, 1);
 
 bool LinuxFileSystem::ShowOpenFileDialog(Window* parentWindow, const StringView& initialDirectory, const StringView& filter, bool multiSelect, const StringView& title, Array<String, HeapAllocation>& filenames)
 {
-    const StringAsANSI<> initialDirectoryAnsi(*initialDirectory, initialDirectory.Length());
-    const StringAsANSI<> titleAnsi(*title, title.Length());
+    const StringAsUTF8<> initialDirectoryAnsi(*initialDirectory, initialDirectory.Length());
+    const StringAsUTF8<> titleAnsi(*title, title.Length());
     const char* initDir = initialDirectory.HasChars() ? initialDirectoryAnsi.Get() : ".";
     String xdgCurrentDesktop;
     StringBuilder fileFilter;
@@ -113,7 +113,7 @@ bool LinuxFileSystem::ShowOpenFileDialog(Window* parentWindow, const StringView&
 
 bool LinuxFileSystem::ShowBrowseFolderDialog(Window* parentWindow, const StringView& initialDirectory, const StringView& title, String& path)
 {
-    const StringAsANSI<> titleAnsi(*title, title.Length());
+    const StringAsUTF8<> titleAnsi(*title, title.Length());
     String xdgCurrentDesktop;
     Platform::GetEnvironmentVariable(TEXT("XDG_CURRENT_DESKTOP"), xdgCurrentDesktop);
 
@@ -158,7 +158,7 @@ bool LinuxFileSystem::ShowBrowseFolderDialog(Window* parentWindow, const StringV
 
 bool LinuxFileSystem::ShowFileExplorer(const StringView& path)
 {
-    const StringAsANSI<> pathAnsi(*path, path.Length());
+    const StringAsUTF8<> pathAnsi(*path, path.Length());
     char cmd[2048];
     sprintf(cmd, "xdg-open %s &", pathAnsi.Get());
     system(cmd);
@@ -167,7 +167,7 @@ bool LinuxFileSystem::ShowFileExplorer(const StringView& path)
 
 bool LinuxFileSystem::CreateDirectory(const StringView& path)
 {
-    const StringAsANSI<> pathAnsi(*path, path.Length());
+    const StringAsUTF8<> pathAnsi(*path, path.Length());
 
     // Skip if already exists
     struct stat fileInfo;
@@ -258,7 +258,7 @@ bool DeleteUnixPathTree(const char* path)
 
 bool LinuxFileSystem::DeleteDirectory(const String& path, bool deleteContents)
 {
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     if (deleteContents)
     {
         return DeleteUnixPathTree(pathANSI.Get());
@@ -272,7 +272,7 @@ bool LinuxFileSystem::DeleteDirectory(const String& path, bool deleteContents)
 bool LinuxFileSystem::DirectoryExists(const StringView& path)
 {
     struct stat fileInfo;
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     if (stat(pathANSI.Get(), &fileInfo) != -1)
     {
         return S_ISDIR(fileInfo.st_mode);
@@ -282,8 +282,8 @@ bool LinuxFileSystem::DirectoryExists(const StringView& path)
 
 bool LinuxFileSystem::DirectoryGetFiles(Array<String>& results, const String& path, const Char* searchPattern, DirectorySearchOption option)
 {
-    const StringAsANSI<> pathANSI(*path, path.Length());
-    const StringAsANSI<> searchPatternANSI(searchPattern);
+    const StringAsUTF8<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> searchPatternANSI(searchPattern);
 
     // Check if use only top directory
     if (option == DirectorySearchOption::TopDirectoryOnly)
@@ -297,7 +297,7 @@ bool LinuxFileSystem::GetChildDirectories(Array<String>& results, const String& 
     DIR* dir;
     struct stat statPath, statEntry;
     struct dirent* entry;
-    const StringAsANSI<> pathANSI(*directory, directory.Length());
+    const StringAsUTF8<> pathANSI(*directory, directory.Length());
     const char* path = pathANSI.Get();
 
     // Stat for the path
@@ -353,7 +353,7 @@ bool LinuxFileSystem::GetChildDirectories(Array<String>& results, const String& 
 bool LinuxFileSystem::FileExists(const StringView& path)
 {
     struct stat fileInfo;
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     if (stat(pathANSI.Get(), &fileInfo) != -1)
     {
         return S_ISREG(fileInfo.st_mode);
@@ -363,15 +363,15 @@ bool LinuxFileSystem::FileExists(const StringView& path)
 
 bool LinuxFileSystem::DeleteFile(const StringView& path)
 {
-    const StringAsANSI<> pathANSI(*path, path.Length());
-    return unlink(pathANSI.Get()) == 0;
+    const StringAsUTF8<> pathANSI(*path, path.Length());
+    return unlink(pathANSI.Get()) != 0;
 }
 
 uint64 LinuxFileSystem::GetFileSize(const StringView& path)
 {
     struct stat fileInfo;
     fileInfo.st_size = 0;
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     if (stat(pathANSI.Get(), &fileInfo) != -1)
     {
         // Check for directories
@@ -385,7 +385,7 @@ uint64 LinuxFileSystem::GetFileSize(const StringView& path)
 
 bool LinuxFileSystem::IsReadOnly(const StringView& path)
 {
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     if (access(pathANSI.Get(), W_OK) == -1)
     {
         return errno == EACCES;
@@ -395,7 +395,7 @@ bool LinuxFileSystem::IsReadOnly(const StringView& path)
 
 bool LinuxFileSystem::SetReadOnly(const StringView& path, bool isReadOnly)
 {
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     struct stat fileInfo;
     if (stat(pathANSI.Get(), &fileInfo) != -1)
     {
@@ -422,15 +422,15 @@ bool LinuxFileSystem::MoveFile(const StringView& dst, const StringView& src, boo
 
     if (overwrite)
     {
-        unlink(StringAsANSI<>(*dst, dst.Length()).Get());
+        unlink(StringAsUTF8<>(*dst, dst.Length()).Get());
     }
-    if (rename(StringAsANSI<>(*src, src.Length()).Get(), StringAsANSI<>(*dst, dst.Length()).Get()) != 0)
+    if (rename(StringAsUTF8<>(*src, src.Length()).Get(), StringAsUTF8<>(*dst, dst.Length()).Get()) != 0)
     {
         if (errno == EXDEV)
         {
             if (!CopyFile(dst, src))
             {
-                unlink(StringAsANSI<>(*src, src.Length()).Get());
+                unlink(StringAsUTF8<>(*src, src.Length()).Get());
                 return false;
             }
         }
@@ -441,8 +441,8 @@ bool LinuxFileSystem::MoveFile(const StringView& dst, const StringView& src, boo
 
 bool LinuxFileSystem::CopyFile(const StringView& dst, const StringView& src)
 {
-    const StringAsANSI<> srcANSI(*src, src.Length());
-    const StringAsANSI<> dstANSI(*dst, dst.Length());
+    const StringAsUTF8<> srcANSI(*src, src.Length());
+    const StringAsUTF8<> dstANSI(*dst, dst.Length());
 
     int srcFile, dstFile;
     char buffer[4096];
@@ -508,6 +508,107 @@ out_error:
     if (dstFile >= 0)
         close(dstFile);
     errno = cachedError;
+    return true;
+}
+
+bool LinuxFileSystem::MoveFileToRecycleBin(const StringView& path)
+{
+    String trashDir;
+    GetSpecialFolderPath(SpecialFolder::LocalAppData, trashDir);
+    trashDir += TEXT("/Trash");
+    const String filesDir = trashDir + TEXT("/files");
+    const String infoDir = trashDir + TEXT("/info");
+    String trashName = getBaseName(path);
+    String dst = filesDir / trashName;
+
+    int fd = -1;
+    if (FileExists(dst))
+    {
+        const String ext = GetExtension(path);
+        dst = filesDir / getNameWithoutExtension(path) + TEXT("XXXXXX.") + ext;
+        const char *templateString = dst.ToStringAnsi().Get();
+        char writableName[strlen(templateString) + 1];
+        strcpy(writableName, templateString);
+        fd = mkstemps(writableName, ext.Length() + 1);
+        if (fd < 0)
+        {
+            LOG(Error, "Cannot create a temporary file as {0}, errno={1}", String(writableName), errno);
+            return true;
+        }
+        dst = String(writableName);
+        trashName = getBaseName(dst);
+    }
+    if (fd != -1)
+        close(fd);
+
+    if (!MoveFile(dst, path, true))
+    {
+        // Not MoveFile means success so write the info file
+        const String infoFile = infoDir / trashName + TEXT(".trashinfo");
+        StringBuilder trashInfo;
+        const char *ansiPath = path.ToStringAnsi().Get();
+        const int maxLength = strlen(ansiPath) * 3 + 1; // in the worst case the length will be tripled
+        char encoded[maxLength];
+        if (!UrnEncodePath(ansiPath, encoded, maxLength))
+        {
+            // unlikely but better keep something
+            strcpy(encoded, ansiPath);
+        }
+        const DateTime now = DateTime::Now();
+        const String rfcDate = String::Format(TEXT("{0}-{1:0>2}-{2:0>2}T{3:0>2}:{4:0>2}:{5:0>2}"), now.GetYear(), now.GetMonth(), now.GetDay(), now.GetHour(), now.GetMinute(), now.GetSecond());
+        trashInfo.AppendLine(TEXT("[Trash Info]")).Append(TEXT("Path=")).Append(encoded).Append(TEXT('\n'));
+        trashInfo.Append(TEXT("DeletionDate=")).Append(rfcDate).Append(TEXT("\n\0"));
+
+        // a failure to write the info file is considered non-fatal according to the FreeDesktop.org specification
+        FileBase::WriteAllText(infoFile, trashInfo, Encoding::ANSI);
+        // return false on success as the Windows pendant does
+        return false;
+    }
+    return true;
+}
+
+String LinuxFileSystem::getBaseName(const StringView& path)
+{
+    String baseName = path.Substring(path.FindLast('/') + 1);
+    if (baseName.IsEmpty())
+        baseName = path;
+    return baseName;
+}
+
+String LinuxFileSystem::getNameWithoutExtension(const StringView& path)
+{
+    String baseName = getBaseName(path);
+    const int pos = baseName.FindLast('.');
+    if (pos > 0)
+        return baseName.Left(pos);
+    return baseName;
+}
+
+bool LinuxFileSystem::UrnEncodePath(const char *path, char *result, const int maxLength)
+{
+    static auto digits = "0123456789ABCDEF";
+    const char *src = path;
+    char *dest = result;
+    while (*src)
+    {
+        if (*src <= 0x20 || *src > 0x7f || *src == '%')
+        {
+            if (dest - result + 4 > maxLength)
+                return false;
+            *dest++ = '%';
+            *dest++ = digits[*src>>4 & 0xf];
+            *dest = digits[*src & 0xf];
+        }
+        else
+        {
+            *dest = *src;
+        }
+        src++;
+        dest++;
+        if (dest - result == maxLength)
+            return false;
+    }
+    *dest = 0;
     return true;
 }
 
@@ -651,13 +752,13 @@ bool LinuxFileSystem::getFilesFromDirectoryAll(Array<String>& results, const cha
 DateTime LinuxFileSystem::GetFileLastEditTime(const StringView& path)
 {
     struct stat fileInfo;
-    const StringAsANSI<> pathANSI(*path, path.Length());
+    const StringAsUTF8<> pathANSI(*path, path.Length());
     if (stat(pathANSI.Get(), &fileInfo) == -1)
     {
         return DateTime::MinValue();
     }
 
-    const TimeSpan timeSinceEpoch(0, 0, fileInfo.st_mtime);
+    const TimeSpan timeSinceEpoch(0, 0, 0, fileInfo.st_mtime);
     return UnixEpoch + timeSinceEpoch;
 }
 

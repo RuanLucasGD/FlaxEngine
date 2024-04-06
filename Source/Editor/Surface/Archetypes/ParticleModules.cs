@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Linq;
@@ -128,7 +128,7 @@ namespace FlaxEditor.Surface.Archetypes
                 Render2D.DrawSprite(Editor.Instance.Icons.DragBar12, _arrangeButtonRect, _arrangeButtonInUse ? Color.Orange : dragBarColor);
                 if (_arrangeButtonInUse && ArrangeAreaCheck(out _, out var arrangeTargetRect))
                 {
-                    Render2D.FillRectangle(arrangeTargetRect, Color.Orange * 0.8f);
+                    Render2D.FillRectangle(arrangeTargetRect, style.Selection);
                 }
 
                 // Disabled overlay

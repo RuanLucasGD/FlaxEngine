@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -170,6 +170,8 @@ namespace FlaxEditor.Windows
             /// <inheritdoc />
             public override bool OnKeyDown(KeyboardKeys key)
             {
+                InputOptions options = FlaxEditor.Editor.Instance.Options.Options.Input;
+
                 // Up
                 if (key == KeyboardKeys.ArrowUp)
                 {
@@ -200,7 +202,7 @@ namespace FlaxEditor.Windows
                     Open();
                 }
                 // Ctrl+C
-                else if (key == KeyboardKeys.C && Root.GetKey(KeyboardKeys.Control))
+                else if (options.Copy.Process(this))
                 {
                     Copy();
                     return true;

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #if USE_LARGE_WORLDS
 using Real = System.Double;
@@ -29,15 +29,33 @@ namespace FlaxEditor.SceneGraph.Actors
         {
             base.PostSpawn();
 
+            if (Actor.HasPrefabLink)
+            {
+                return;
+            }
+
             // Rotate to match the space (GUI uses upper left corner as a root)
             Actor.LocalOrientation = Quaternion.Euler(0, -180, -180);
-            var uiControl = new UIControl
+            bool canSpawn = true;
+            foreach (var uiControl in Actor.GetChildren<UIControl>())
             {
-                Name = "Canvas Scalar",
-                Transform = Actor.Transform,
-                Control = new CanvasScaler()
-            };
-            Root.Spawn(uiControl, Actor);
+                if (uiControl.Get<CanvasScaler>() == null)
+                    continue;
+                canSpawn = false;
+                break;
+            }
+
+            if (canSpawn)
+            {
+                var uiControl = new UIControl
+                {
+                    Name = "Canvas Scalar",
+                    Transform = Actor.Transform,
+                    Control = new CanvasScaler()
+                };
+                Root.Spawn(uiControl, Actor);
+            }
+            _treeNode.Expand();
         }
 
         /// <inheritdoc />

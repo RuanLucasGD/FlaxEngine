@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "RenderList.h"
 #include "Engine/Core/Collections/Sorting.h"
@@ -194,7 +194,7 @@ void RenderList::AddSettingsBlend(IPostFxSettingsProvider* provider, float weigh
 void RenderList::BlendSettings()
 {
     PROFILE_CPU();
-    Sorting::QuickSort(Blendable.Get(), Blendable.Count());
+    Sorting::QuickSort(Blendable);
     Settings = Graphics::PostProcessSettings;
     for (auto& b : Blendable)
     {
@@ -266,6 +266,8 @@ void RenderList::RunPostFxPass(GPUContext* context, RenderContext& renderContext
         {
             if (fx->Location == locationB)
             {
+                context->ResetSR();
+                context->ResetUA();
                 if (fx->UseSingleTarget || output == nullptr)
                 {
                     fx->Render(context, renderContext, input, nullptr);
@@ -634,7 +636,7 @@ void RenderList::SortDrawCalls(const RenderContext& renderContext, bool reverseD
     }
 
     // Sort draw calls batches by depth
-    Sorting::QuickSort(list.Batches.Get(), list.Batches.Count());
+    Sorting::QuickSort(list.Batches);
 }
 
 FORCE_INLINE bool CanUseInstancing(DrawPass pass)
@@ -652,6 +654,7 @@ void RenderList::ExecuteDrawCalls(const RenderContext& renderContext, DrawCallsL
     const auto* batchesData = list.Batches.Get();
     const auto context = GPUDevice::Instance->GetMainContext();
     bool useInstancing = list.CanUseInstancing && CanUseInstancing(renderContext.View.Pass) && GPUDevice::Instance->Limits.HasInstancing;
+    TaaJitterRemoveContext taaJitterRemove(renderContext.View);
 
     // Clear SR slots to prevent any resources binding issues (leftovers from the previous passes)
     context->ResetSR();

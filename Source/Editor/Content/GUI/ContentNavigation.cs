@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using FlaxEditor.GUI;
 using FlaxEditor.GUI.ContextMenu;
@@ -161,7 +161,7 @@ namespace FlaxEditor.Content.GUI
         {
             var style = Style.Current;
             var rect = new Rectangle(Float2.Zero, Size);
-            var color = IsDragOver ? style.BackgroundSelected * 0.6f : (_mouseDown ? style.BackgroundSelected : (IsMouseOver ? style.BackgroundHighlighted : Color.Transparent));
+            var color = IsDragOver ? Color.Transparent : (_mouseDown ? style.BackgroundSelected : (IsMouseOver ? style.BackgroundHighlighted : Color.Transparent));
             Render2D.FillRectangle(rect, color);
             Render2D.DrawSprite(Editor.Instance.Icons.ArrowRight12, new Rectangle(rect.Location.X, rect.Y + rect.Size.Y * 0.25f, rect.Size.X, rect.Size.X), EnabledInHierarchy ? style.Foreground : style.ForegroundDisabled);
         }

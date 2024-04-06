@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -10,8 +10,9 @@
 /// </summary>
 API_CLASS(sealed, Namespace="FlaxEditor.Content.Settings") class FLAXENGINE_API NetworkSettings : public SettingsBase
 {
-    API_AUTO_SERIALIZATION();
     DECLARE_SCRIPTING_TYPE_MINIMAL(NetworkSettings);
+    API_AUTO_SERIALIZATION();
+
 public:
     /// <summary>
     /// Maximum amount of active network clients in a game session. Used by server or host to limit amount of players and spectators.

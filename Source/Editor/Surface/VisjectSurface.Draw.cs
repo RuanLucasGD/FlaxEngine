@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using FlaxEditor.Surface.Elements;
 using FlaxEngine;
@@ -64,7 +64,11 @@ namespace FlaxEditor.Surface
         /// </summary>
         protected virtual void DrawBackground()
         {
-            var background = Style.Background;
+            DrawBackgroundDefault(Style.Background, Width, Height);
+        }
+
+        internal static void DrawBackgroundDefault(Texture background, float width, float height)
+        {
             if (background && background.ResidentMipLevels > 0)
             {
                 var bSize = background.Size;
@@ -77,8 +81,8 @@ namespace FlaxEditor.Surface
                 if (pos.Y > 0)
                     pos.Y -= bh;
 
-                int maxI = Mathf.CeilToInt(Width / bw + 1.0f);
-                int maxJ = Mathf.CeilToInt(Height / bh + 1.0f);
+                int maxI = Mathf.CeilToInt(width / bw + 1.0f);
+                int maxJ = Mathf.CeilToInt(height / bh + 1.0f);
 
                 for (int i = 0; i < maxI; i++)
                 {
@@ -96,9 +100,10 @@ namespace FlaxEditor.Surface
         /// <remarks>Called only when user is selecting nodes using rectangle tool.</remarks>
         protected virtual void DrawSelection()
         {
+            var style = FlaxEngine.GUI.Style.Current;
             var selectionRect = Rectangle.FromPoints(_leftMouseDownPos, _mousePos);
-            Render2D.FillRectangle(selectionRect, Color.Orange * 0.4f);
-            Render2D.DrawRectangle(selectionRect, Color.Orange);
+            Render2D.FillRectangle(selectionRect, style.Selection);
+            Render2D.DrawRectangle(selectionRect, style.SelectionBorder);
         }
 
         /// <summary>

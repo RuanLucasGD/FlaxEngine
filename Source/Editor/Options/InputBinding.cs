@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
@@ -201,8 +201,8 @@ namespace FlaxEditor.Options
         /// <returns>True if input has been processed, otherwise false.</returns>
         public bool Process(Control control)
         {
-            var root = control.Root;
-            return root.GetKey(Key) && ProcessModifiers(control);
+            var root = control?.Root;
+            return root != null && root.GetKey(Key) && ProcessModifiers(control);
         }
 
         /// <summary>

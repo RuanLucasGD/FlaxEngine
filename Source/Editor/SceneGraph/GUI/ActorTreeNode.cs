@@ -1,8 +1,9 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using FlaxEditor.Actions;
 using FlaxEditor.Content;
 using FlaxEditor.GUI;
 using FlaxEditor.GUI.Drag;
@@ -14,7 +15,6 @@ using FlaxEditor.Windows.Assets;
 using FlaxEngine;
 using FlaxEngine.GUI;
 using FlaxEngine.Utilities;
-using Object = FlaxEngine.Object;
 
 namespace FlaxEditor.SceneGraph.GUI
 {
@@ -29,6 +29,7 @@ namespace FlaxEditor.SceneGraph.GUI
         private DragScripts _dragScripts;
         private DragAssets _dragAssets;
         private DragActorType _dragActorType;
+        private DragScriptItems _dragScriptItems;
         private DragHandlers _dragHandlers;
         private List<Rectangle> _highlights;
         private bool _hasSearchFilter;
@@ -81,16 +82,67 @@ namespace FlaxEditor.SceneGraph.GUI
             UpdateText();
         }
 
+        internal void OnParentChanged(Actor actor, ActorNode parentNode)
+        {
+            // Update cached value
+            _orderInParent = actor.OrderInParent;
+
+            // Update UI (special case if actor is spawned and added to existing scene tree)
+            var parentTreeNode = parentNode?.TreeNode;
+            if (parentTreeNode != null && !parentTreeNode.IsLayoutLocked)
+            {
+                parentTreeNode.IsLayoutLocked = true;
+                Parent = parentTreeNode;
+                IndexInParent = _orderInParent;
+                parentTreeNode.IsLayoutLocked = false;
+
+                // Skip UI update if node won't be in a view
+                if (parentTreeNode.IsCollapsed)
+                {
+                    UnlockChildrenRecursive();
+                }
+                else
+                {
+                    // Try to perform layout at the level where it makes it the most performant (the least computations)
+                    var tree = parentTreeNode.ParentTree;
+                    if (tree != null)
+                    {
+                        if (tree.Parent is Panel treeParent)
+                            treeParent.PerformLayout();
+                        else
+                            tree.PerformLayout();
+                    }
+                    else
+                    {
+                        parentTreeNode.PerformLayout();
+                    }
+                }
+            }
+            else
+            {
+                Parent = parentTreeNode;
+            }
+        }
+
         internal void OnOrderInParentChanged()
         {
+            // Use cached value to check if we need to update UI layout (and update siblings order at once)
             if (Parent is ActorTreeNode parent)
             {
-                for (int i = 0; i < parent.ChildrenCount; i++)
+                var anyChanged = false;
+                var children = parent.Children;
+                for (int i = 0; i < children.Count; i++)
                 {
-                    if (parent.Children[i] is ActorTreeNode child && child.Actor)
-                        child._orderInParent = child.Actor.OrderInParent;
+                    if (children[i] is ActorTreeNode child && child.Actor)
+                    {
+                        var orderInParent = child.Actor.OrderInParent;
+                        anyChanged |= child._orderInParent != orderInParent;
+                        if (anyChanged)
+                            child._orderInParent = orderInParent;
+                    }
                 }
-                parent.SortChildren();
+                if (anyChanged)
+                    parent.SortChildren();
             }
             else if (Actor)
             {
@@ -387,6 +439,13 @@ namespace FlaxEditor.SceneGraph.GUI
             }
             if (_dragActorType.OnDragEnter(data))
                 return _dragActorType.Effect;
+            if (_dragScriptItems == null)
+            {
+                _dragScriptItems = new DragScriptItems(ValidateDragScriptItem);
+                _dragHandlers.Add(_dragScriptItems);
+            }
+            if (_dragScriptItems.OnDragEnter(data))
+                return _dragScriptItems.Effect;
 
             return DragDropEffect.None;
         }
@@ -401,134 +460,6 @@ namespace FlaxEditor.SceneGraph.GUI
         protected override void OnDragLeaveHeader()
         {
             _dragHandlers.OnDragLeave();
-        }
-
-        [Serializable]
-        private class ReparentAction : IUndoAction
-        {
-            [Serialize]
-            private Guid[] _ids;
-
-            [Serialize]
-            private int _actorsCount;
-
-            [Serialize]
-            private Guid[] _prefabIds;
-
-            [Serialize]
-            private Guid[] _prefabObjectIds;
-
-            public ReparentAction(Actor actor)
-            : this(new List<Actor> { actor })
-            {
-            }
-
-            public ReparentAction(List<Actor> actors)
-            {
-                var allActors = new List<Actor>(Mathf.NextPowerOfTwo(actors.Count));
-
-                for (int i = 0; i < actors.Count; i++)
-                {
-                    GetAllActors(allActors, actors[i]);
-                }
-
-                var allScripts = new List<Script>(allActors.Capacity);
-                GetAllScripts(allActors, allScripts);
-
-                int allCount = allActors.Count + allScripts.Count;
-                _actorsCount = allActors.Count;
-                _ids = new Guid[allCount];
-                _prefabIds = new Guid[allCount];
-                _prefabObjectIds = new Guid[allCount];
-
-                for (int i = 0; i < allActors.Count; i++)
-                {
-                    _ids[i] = allActors[i].ID;
-                    _prefabIds[i] = allActors[i].PrefabID;
-                    _prefabObjectIds[i] = allActors[i].PrefabObjectID;
-                }
-
-                for (int i = 0; i < allScripts.Count; i++)
-                {
-                    int j = _actorsCount + i;
-                    _ids[j] = allScripts[i].ID;
-                    _prefabIds[j] = allScripts[i].PrefabID;
-                    _prefabObjectIds[j] = allScripts[i].PrefabObjectID;
-                }
-            }
-
-            public ReparentAction(Script script)
-            {
-                _actorsCount = 0;
-                _ids = new Guid[] { script.ID };
-                _prefabIds = new Guid[] { script.PrefabID };
-                _prefabObjectIds = new Guid[] { script.PrefabObjectID };
-            }
-
-            private void GetAllActors(List<Actor> allActors, Actor actor)
-            {
-                allActors.Add(actor);
-
-                for (int i = 0; i < actor.ChildrenCount; i++)
-                {
-                    var child = actor.GetChild(i);
-                    if (!allActors.Contains(child))
-                    {
-                        GetAllActors(allActors, child);
-                    }
-                }
-            }
-
-            private void GetAllScripts(List<Actor> allActors, List<Script> allScripts)
-            {
-                for (int i = 0; i < allActors.Count; i++)
-                {
-                    var actor = allActors[i];
-                    for (int j = 0; j < actor.ScriptsCount; j++)
-                    {
-                        allScripts.Add(actor.GetScript(j));
-                    }
-                }
-            }
-
-            /// <inheritdoc />
-            public string ActionString => string.Empty;
-
-            /// <inheritdoc />
-            public void Do()
-            {
-                // Note: prefab links are broken by the C++ backend on actor reparenting
-            }
-
-            /// <inheritdoc />
-            public void Undo()
-            {
-                // Restore links
-                for (int i = 0; i < _actorsCount; i++)
-                {
-                    var actor = Object.Find<Actor>(ref _ids[i]);
-                    if (actor != null && _prefabIds[i] != Guid.Empty)
-                    {
-                        Actor.Internal_LinkPrefab(Object.GetUnmanagedPtr(actor), ref _prefabIds[i], ref _prefabObjectIds[i]);
-                    }
-                }
-                for (int i = _actorsCount; i < _ids.Length; i++)
-                {
-                    var script = Object.Find<Script>(ref _ids[i]);
-                    if (script != null && _prefabIds[i] != Guid.Empty)
-                    {
-                        Script.Internal_LinkPrefab(Object.GetUnmanagedPtr(script), ref _prefabIds[i], ref _prefabObjectIds[i]);
-                    }
-                }
-            }
-
-            /// <inheritdoc />
-            public void Dispose()
-            {
-                _ids = null;
-                _prefabIds = null;
-                _prefabObjectIds = null;
-            }
         }
 
         /// <inheritdoc />
@@ -577,46 +508,24 @@ namespace FlaxEditor.SceneGraph.GUI
             // Drag actors
             if (_dragActors != null && _dragActors.HasValidDrag)
             {
-                bool worldPositionLock = Root.GetKey(KeyboardKeys.Control) == false;
-                var singleObject = _dragActors.Objects.Count == 1;
-                if (singleObject)
-                {
-                    var targetActor = _dragActors.Objects[0].Actor;
-                    var customAction = targetActor.HasPrefabLink ? new ReparentAction(targetActor) : null;
-                    using (new UndoBlock(ActorNode.Root.Undo, targetActor, "Change actor parent", customAction))
-                    {
-                        targetActor.SetParent(newParent, worldPositionLock, true);
-                        targetActor.OrderInParent = newOrder;
-                    }
-                }
-                else
-                {
-                    var targetActors = _dragActors.Objects.ConvertAll(x => x.Actor);
-                    var customAction = targetActors.Any(x => x.HasPrefabLink) ? new ReparentAction(targetActors) : null;
-                    using (new UndoMultiBlock(ActorNode.Root.Undo, targetActors, "Change actors parent", customAction))
-                    {
-                        for (int i = 0; i < targetActors.Count; i++)
-                        {
-                            var targetActor = targetActors[i];
-                            targetActor.SetParent(newParent, worldPositionLock, true);
-                            targetActor.OrderInParent = newOrder;
-                        }
-                    }
-                }
-
+                bool worldPositionsStays = Root.GetKey(KeyboardKeys.Control) == false;
+                var objects = new SceneObject[_dragActors.Objects.Count];
+                for (int i = 0; i < objects.Length; i++)
+                    objects[i] = _dragActors.Objects[i].Actor;
+                var action = new ParentActorsAction(objects, newParent, newOrder, worldPositionsStays);
+                ActorNode.Root.Undo?.AddAction(action);
+                action.Do();
                 result = DragDropEffect.Move;
             }
             // Drag scripts
             else if (_dragScripts != null && _dragScripts.HasValidDrag)
             {
-                foreach (var script in _dragScripts.Objects)
-                {
-                    var customAction = script.HasPrefabLink ? new ReparentAction(script) : null;
-                    using (new UndoBlock(ActorNode.Root.Undo, script, "Change script parent", customAction))
-                    {
-                        script.SetParent(newParent, true);
-                    }
-                }
+                var objects = new SceneObject[_dragScripts.Objects.Count];
+                for (int i = 0; i < objects.Length; i++)
+                    objects[i] = _dragScripts.Objects[i];
+                var action = new ParentActorsAction(objects, newParent, newOrder);
+                ActorNode.Root.Undo?.AddAction(action);
+                action.Do();
                 Select();
                 result = DragDropEffect.Move;
             }
@@ -642,8 +551,11 @@ namespace FlaxEditor.SceneGraph.GUI
                         }
                     }
                     actor.Name = item.ShortName;
-                    actor.Transform = spawnParent.Transform;
+                    if (_dragAssets.Objects[i] is not PrefabItem)
+                        actor.Transform = Transform.Identity;
+                    var previousTrans = actor.Transform;
                     ActorNode.Root.Spawn(actor, spawnParent);
+                    actor.LocalTransform = previousTrans;
                     actor.OrderInParent = newOrder;
                 }
                 result = DragDropEffect.Move;
@@ -665,7 +577,34 @@ namespace FlaxEditor.SceneGraph.GUI
                     actor.Transform = Actor.Transform;
                     ActorNode.Root.Spawn(actor, Actor);
                 }
+                result = DragDropEffect.Move;
+            }
+            // Drag script item
+            else if (_dragScriptItems != null && _dragScriptItems.HasValidDrag)
+            {
+                var spawnParent = myActor;
+                if (DragOverMode == DragItemPositioning.Above || DragOverMode == DragItemPositioning.Below)
+                    spawnParent = newParent;
 
+                for (int i = 0; i < _dragScriptItems.Objects.Count; i++)
+                {
+                    var item = _dragScriptItems.Objects[i];
+                    var actorType = Editor.Instance.CodeEditing.Actors.Get(item);
+                    if (actorType != ScriptType.Null)
+                    {
+                        var actor = actorType.CreateInstance() as Actor;
+                        if (actor == null)
+                        {
+                            Editor.LogWarning("Failed to spawn actor of type " + actorType.TypeName);
+                            continue;
+                        }
+                        actor.StaticFlags = spawnParent.StaticFlags;
+                        actor.Name = actorType.Name;
+                        actor.Transform = spawnParent.Transform;
+                        ActorNode.Root.Spawn(actor, spawnParent);
+                        actor.OrderInParent = newOrder;
+                    }
+                }
                 result = DragDropEffect.Move;
             }
 
@@ -688,6 +627,10 @@ namespace FlaxEditor.SceneGraph.GUI
             var thisHasScene = ActorNode.ParentScene != null;
             var otherHasScene = actorNode.ParentScene != null;
             if (thisHasScene != otherHasScene)
+                return false;
+
+            // Reject dragging actors between prefab windows (different roots)
+            if (!thisHasScene && ActorNode.Root != actorNode.Root)
                 return false;
 
             // Reject dragging parents and itself
@@ -714,6 +657,11 @@ namespace FlaxEditor.SceneGraph.GUI
         private static bool ValidateDragActorType(ScriptType actorType)
         {
             return true;
+        }
+
+        private static bool ValidateDragScriptItem(ScriptItem script)
+        {
+            return Editor.Instance.CodeEditing.Actors.Get(script) != ScriptType.Null;
         }
 
         /// <inheritdoc />
@@ -756,6 +704,7 @@ namespace FlaxEditor.SceneGraph.GUI
             _dragScripts = null;
             _dragAssets = null;
             _dragActorType = null;
+            _dragScriptItems = null;
             _dragHandlers?.Clear();
             _dragHandlers = null;
             _highlights = null;

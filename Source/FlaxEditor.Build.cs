@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.IO;
 using Flax.Build;
@@ -14,7 +14,6 @@ public class FlaxEditor : EngineTarget
     {
         base.Init();
 
-        // Initialize
         IsEditor = true;
         OutputName = "FlaxEditor";
         ConfigurationName = "Editor";
@@ -31,7 +30,6 @@ public class FlaxEditor : EngineTarget
             TargetArchitecture.ARM64,
         };
         GlobalDefinitions.Add("USE_EDITOR");
-        Win32ResourceFile = Path.Combine(Globals.EngineRoot, "Source", "FlaxEditor.rc");
 
         Modules.Add("Editor");
         Modules.Add("CSG");

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using System.IO;
@@ -32,7 +32,7 @@ public class nethost : ThirdPartyModule
         // Get .NET SDK runtime host
         var dotnetSdk = DotNetSdk.Instance;
         if (!dotnetSdk.IsValid)
-            throw new Exception($"Missing NET SDK {DotNetSdk.MinimumVersion}.");
+            throw new DotNetSdk.MissingException();
         if (!dotnetSdk.GetHostRuntime(options.Platform.Target, options.Architecture, out var hostRuntime))
         {
             if (options.Target.IsPreBuilt)
@@ -74,11 +74,24 @@ public class nethost : ThirdPartyModule
         case TargetPlatform.Switch:
         case TargetPlatform.PS4:
         case TargetPlatform.PS5:
-            options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libmonosgen-2.0.a"));
-            options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.Native.a"));
-            options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.IO.Ports.Native.a"));
-            options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.IO.Compression.Native.a"));
+        {
+            var type = Flax.Build.Utilities.GetType($"Flax.Build.Platforms.{options.Platform.Target}.nethost");
+            var onLink = type?.GetMethod("OnLink");
+            if (onLink != null)
+            {
+                // Custom linking logic overriden by platform tools
+                onLink.Invoke(null, new object[] { options, hostRuntime.Path });
+            }
+            else
+            {
+                options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libmonosgen-2.0.a"));
+                options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.Native.a"));
+                options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.IO.Ports.Native.a"));
+                options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.IO.Compression.Native.a"));
+                options.OutputFiles.Add(Path.Combine(hostRuntime.Path, "libSystem.Globalization.Native.a"));
+            }
             break;
+        }
         case TargetPlatform.Android:
             options.PublicDefinitions.Add("USE_MONO_DYNAMIC_LIB");
             options.DependencyFiles.Add(Path.Combine(hostRuntime.Path, "libmonosgen-2.0.so"));

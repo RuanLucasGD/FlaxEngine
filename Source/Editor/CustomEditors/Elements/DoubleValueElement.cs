@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System.Linq;
 using System.Reflection;
@@ -49,6 +49,15 @@ namespace FlaxEditor.CustomEditors.Elements
                     ValueBox.SetLimits((LimitAttribute)limit);
                 }
             }
+        }
+
+        /// <summary>
+        /// Sets the editor value category.
+        /// </summary>
+        /// <param name="category">The category.</param>
+        public void SetCategory(Utils.ValueCategory category)
+        {
+            ValueBox.Category = category;
         }
 
         /// <summary>

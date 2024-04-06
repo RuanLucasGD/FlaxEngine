@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 using System;
 using FlaxEditor.Scripting;
@@ -73,7 +73,6 @@ namespace FlaxEditor.CustomEditors
         {
             if (instanceValues == null || instanceValues.Count != Count)
                 throw new ArgumentException();
-
             for (int i = 0; i < Count; i++)
             {
                 var v = instanceValues[i];

@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -57,6 +57,10 @@ API_CLASS(Namespace="FlaxEngine.Tools", Static) class FLAXENGINE_API TextureTool
         API_FIELD(Attributes="EditorOrder(70)")
         bool FlipY = false;
 
+        // True if to invert the green channel on a normal map. Good for OpenGL to DirectX conversion.
+        API_FIELD(Attributes = "EditorOrder(71)")
+        bool InvertGreenChannel = false;
+
         // Texture size scale. Allows increasing or decreasing the imported texture resolution. Default is 1.
         API_FIELD(Attributes="EditorOrder(80), Limit(0.0001f, 1000.0f, 0.01f)")
         float Scale = 1.0f;
@@ -106,14 +110,12 @@ API_CLASS(Namespace="FlaxEngine.Tools", Static) class FLAXENGINE_API TextureTool
 
 public:
 #if USE_EDITOR
-
     /// <summary>
     /// Checks whenever the given texture file contains alpha channel data with values different than solid fill of 1 (non fully opaque).
     /// </summary>
     /// <param name="path">The file path.</param>
     /// <returns>True if has alpha channel, otherwise false.</returns>
     static bool HasAlpha(const StringView& path);
-
 #endif
 
     /// <summary>
@@ -236,6 +238,8 @@ public:
     /// <returns>The sampled color (linear).</returns>
     static Color SampleLinear(const PixelFormatSampler* sampler, const Float2& uv, const void* data, const Int2& size, int32 rowPitch);
 
+    static PixelFormat ToPixelFormat(TextureFormatType format, int32 width, int32 height, bool canCompress);
+
 private:
     enum class ImageType
     {
@@ -252,6 +256,7 @@ private:
     };
 
     static bool GetImageType(const StringView& path, ImageType& type);
+    static bool Transform(TextureData& texture, const Function<void(Color&)>& transformation);
 
 #if COMPILE_WITH_DIRECTXTEX
     static bool ExportTextureDirectXTex(ImageType type, const StringView& path, const TextureData& textureData);
@@ -267,6 +272,9 @@ private:
     static bool ConvertStb(TextureData& dst, const TextureData& src, const PixelFormat dstFormat);
     static bool ResizeStb(PixelFormat format, TextureMipData& dstMip, const TextureMipData& srcMip, int32 dstMipWidth, int32 dstMipHeight);
     static bool ResizeStb(TextureData& dst, const TextureData& src, int32 dstWidth, int32 dstHeight);
+#endif
+#if COMPILE_WITH_ASTC
+    static bool ConvertAstc(TextureData& dst, const TextureData& src, const PixelFormat dstFormat);
 #endif
 };
 

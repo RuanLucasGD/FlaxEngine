@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "NavCrowd.h"
 #include "NavMesh.h"
@@ -46,6 +46,7 @@ bool NavCrowd::Init(float maxAgentRadius, int32 maxAgents, NavMeshRuntime* navMe
 {
     if (!_crowd || !navMesh)
         return true;
+    PROFILE_CPU();
 
     // This can happen on game start when no navmesh is loaded yet (eg. navmesh tiles data is during streaming) so wait for navmesh
     if (navMesh->GetNavMesh() == nullptr)
@@ -103,6 +104,15 @@ Vector3 NavCrowd::GetAgentPosition(int32 id) const
     return result;
 }
 
+void NavCrowd::SetAgentPosition(int32 id, const Vector3& position)
+{
+    dtCrowdAgent* agent = _crowd->getEditableAgent(id);
+    if (agent)
+    {
+        *(Float3*)agent->npos = Float3(position);
+    }
+}
+
 Vector3 NavCrowd::GetAgentVelocity(int32 id) const
 {
     Vector3 result = Vector3::Zero;
@@ -112,6 +122,15 @@ Vector3 NavCrowd::GetAgentVelocity(int32 id) const
         result = Float3(agent->vel);
     }
     return result;
+}
+
+void NavCrowd::SetAgentVelocity(int32 id, const Vector3& velocity)
+{
+    dtCrowdAgent* agent = _crowd->getEditableAgent(id);
+    if (agent)
+    {
+        *(Float3*)agent->vel = Float3(velocity);
+    }
 }
 
 void NavCrowd::SetAgentProperties(int32 id, const NavAgentProperties& properties)
@@ -145,6 +164,7 @@ void NavCrowd::ResetAgentMove(int32 id)
 
 void NavCrowd::RemoveAgent(int32 id)
 {
+    CHECK(id >= 0 && id < _crowd->getAgentCount());
     _crowd->removeAgent(id);
 }
 

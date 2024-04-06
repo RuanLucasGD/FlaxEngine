@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #include "Engine/Platform/Platform.h"
 #include "Engine/Platform/CPUInfo.h"
@@ -40,6 +40,10 @@ static_assert(sizeof(char) == 1, "Invalid char type size.");
 static_assert(sizeof(bool) == 1, "Invalid bool type size.");
 static_assert(sizeof(float) == 4, "Invalid float type size.");
 static_assert(sizeof(double) == 8, "Invalid double type size.");
+
+// Check configuration
+static_assert((PLATFORM_THREADS_LIMIT & (PLATFORM_THREADS_LIMIT - 1)) == 0, "Threads limit must be power of two.");
+static_assert(PLATFORM_THREADS_LIMIT % 4 == 0, "Threads limit must be multiple of 4.");
 
 float PlatformBase::CustomDpiScale = 1.0f;
 Array<User*, FixedAllocation<8>> PlatformBase::Users;
@@ -269,7 +273,6 @@ void PlatformBase::Fatal(const Char* msg, void* context)
     Globals::ExitCode = -1;
 
     // Collect crash info (platform-dependant implementation that might collect stack trace and/or create memory dump)
-    if (Log::Logger::LogFilePath.HasChars())
     {
         // Log separation for crash info
         Log::Logger::WriteFloor();
@@ -284,24 +287,32 @@ void PlatformBase::Fatal(const Char* msg, void* context)
             LOG(Error, "Stack trace:");
             for (const auto& frame : stackFrames)
             {
-                char chr = 0;
+                // Remove any path from the module name
                 int32 num = StringUtils::Length(frame.ModuleName);
-                while (num > 0 && chr != '\\' && chr != '/' && chr != ':')
-                    chr = frame.ModuleName[--num];
-                StringAsUTF16<ARRAY_COUNT(StackFrame::ModuleName)> moduleName(frame.ModuleName + num + 1);
+                while (num > 0 && frame.ModuleName[num - 1] != '\\' && frame.ModuleName[num - 1] != '/' && frame.ModuleName[num - 1] != ':')
+                    num--;
+                StringAsUTF16<ARRAY_COUNT(StackFrame::ModuleName)> moduleName(frame.ModuleName + num);
+                num = moduleName.Length();
+                if (num != 0 && num < ARRAY_COUNT(StackFrame::ModuleName) - 2)
+                {
+                    // Append separator between module name and the function name
+                    ((Char*)moduleName.Get())[num++] = '!';
+                    ((Char*)moduleName.Get())[num] = 0;
+                }
+
                 StringAsUTF16<ARRAY_COUNT(StackFrame::FunctionName)> functionName(frame.FunctionName);
                 if (StringUtils::Length(frame.FileName) != 0)
                 {
                     StringAsUTF16<ARRAY_COUNT(StackFrame::FileName)> fileName(frame.FileName);
-                    LOG(Error, "    at {0}!{1}() in {2}:line {3}", moduleName.Get(), functionName.Get(), fileName.Get(), frame.LineNumber);
+                    LOG(Error, "    at {0}{1}() in {2}:line {3}", moduleName.Get(), functionName.Get(), fileName.Get(), frame.LineNumber);
                 }
                 else if (StringUtils::Length(frame.FunctionName) != 0)
                 {
-                    LOG(Error, "    at {0}!{1}()", moduleName.Get(), functionName.Get());
+                    LOG(Error, "    at {0}{1}()", moduleName.Get(), functionName.Get());
                 }
                 else if (StringUtils::Length(frame.ModuleName) != 0)
                 {
-                    LOG(Error, "    at {0} 0x{1:x}", moduleName.Get(), (uint64)frame.ProgramCounter);
+                    LOG(Error, "    at {0}0x{1:x}", moduleName.Get(), (uint64)frame.ProgramCounter);
                 }
                 else
                 {
@@ -320,7 +331,9 @@ void PlatformBase::Fatal(const Char* msg, void* context)
             LOG(Error, "Process Used Physical Memory: {0}", Utilities::BytesToText(processMemoryStats.UsedPhysicalMemory));
             LOG(Error, "Process Used Virtual Memory: {0}", Utilities::BytesToText(processMemoryStats.UsedVirtualMemory));
         }
-
+    }
+    if (Log::Logger::LogFilePath.HasChars())
+    {
         // Create separate folder with crash info
         const String crashDataFolder = String(StringUtils::GetDirectoryName(Log::Logger::LogFilePath)) / TEXT("Crash_") + StringUtils::GetFileNameWithoutExtension(Log::Logger::LogFilePath).Substring(4);
         FileSystem::CreateDirectory(crashDataFolder);
@@ -353,7 +366,13 @@ void PlatformBase::Error(const Char* msg)
 #if PLATFORM_HAS_HEADLESS_MODE
     if (CommandLine::Options.Headless)
     {
+#if PLATFORM_TEXT_IS_CHAR16
+        StringAnsi ansi(msg);
+        ansi += PLATFORM_LINE_TERMINATOR;
+        printf("Error: %s\n", ansi.Get());
+#else
         std::cout << "Error: " << msg << std::endl;
+#endif
     }
     else
 #endif
@@ -633,14 +652,21 @@ String PlatformBase::GetStackTrace(int32 skipCount, int32 maxDepth, void* contex
     for (const auto& frame : stackFrames)
     {
         StringAsUTF16<ARRAY_COUNT(StackFrame::FunctionName)> functionName(frame.FunctionName);
+        const StringView functionNameStr(functionName.Get());
         if (StringUtils::Length(frame.FileName) != 0)
         {
             StringAsUTF16<ARRAY_COUNT(StackFrame::FileName)> fileName(frame.FileName);
-            result.AppendFormat(TEXT("   at {0}() in {1}:line {2}\n"), functionName.Get(), fileName.Get(), frame.LineNumber);
+            result.Append(TEXT("   at ")).Append(functionNameStr);
+            if (!functionNameStr.EndsWith(')'))
+                result.Append(TEXT("()"));
+            result.AppendFormat(TEXT("in {0}:line {1}\n"),fileName.Get(), frame.LineNumber);
         }
         else if (StringUtils::Length(frame.FunctionName) != 0)
         {
-            result.AppendFormat(TEXT("   at {0}()\n"), functionName.Get());
+            result.Append(TEXT("   at ")).Append(functionNameStr);
+            if (!functionNameStr.EndsWith(')'))
+                result.Append(TEXT("()"));
+            result.Append('\n');
         }
         else
         {

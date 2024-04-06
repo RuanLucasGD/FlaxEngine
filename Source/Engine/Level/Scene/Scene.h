@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -31,16 +31,6 @@ public:
     /// The scene metadata.
     /// </summary>
     SceneInfo Info;
-
-    /// <summary>
-    /// The last load time.
-    /// </summary>
-    DateTime LoadTime;
-
-    /// <summary>
-    /// The last save time.
-    /// </summary>
-    DateTime SaveTime;
 
     /// <summary>
     /// The scene rendering manager.

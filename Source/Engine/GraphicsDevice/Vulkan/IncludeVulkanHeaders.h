@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2023 Wojciech Figat. All rights reserved.
+// Copyright (c) 2012-2024 Wojciech Figat. All rights reserved.
 
 #pragma once
 
@@ -14,7 +14,6 @@
 #include <vulkan/vulkan.h>
 #undef VK_EXT_debug_utils
 #undef VK_EXT_validation_cache
-#define VMA_DEDICATED_ALLOCATION 0
 #pragma clang diagnostic ignored "-Wpointer-bool-conversion"
 #pragma clang diagnostic ignored "-Wtautological-pointer-compare"
 
