@@ -27,6 +27,7 @@ namespace
     // Cached data for the draw calls sorting
     Array<uint64> SortingKeys[2];
     Array<int32> SortingIndices;
+    Array<DrawBatch> SortingBatches;
     Array<RenderList*> FreeRenderList;
 
     struct MemPoolEntry
@@ -570,6 +571,7 @@ void RenderList::SortDrawCalls(const RenderContext& renderContext, bool reverseD
     const auto* drawCallsData = drawCalls.Get();
     const auto* listData = list.Indices.Get();
     const int32 listSize = list.Indices.Count();
+    ZoneValue(listSize);
 
     // Peek shared memory
 #define PREPARE_CACHE(list) (list).Clear(); (list).Resize(listSize)
@@ -626,6 +628,7 @@ void RenderList::SortDrawCalls(const RenderContext& renderContext, bool reverseD
         }
 
         DrawBatch batch;
+        static_assert(sizeof(DrawBatch) == sizeof(uint64) * 2, "Fix the size of draw batch to optimize memory access.");
         batch.SortKey = sortedKeys[i];
         batch.StartIndex = i;
         batch.BatchSize = batchSize;
@@ -636,7 +639,7 @@ void RenderList::SortDrawCalls(const RenderContext& renderContext, bool reverseD
     }
 
     // Sort draw calls batches by depth
-    Sorting::QuickSort(list.Batches);
+    Sorting::MergeSort(list.Batches, &SortingBatches);
 }
 
 FORCE_INLINE bool CanUseInstancing(DrawPass pass)
